@@ -19,3 +19,8 @@
 
 # Go workspace file
 go.work
+
+*_test.go
+.env
+.vscode
+notes.md

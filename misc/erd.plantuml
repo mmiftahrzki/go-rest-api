@@ -1,0 +1,54 @@
+@startuml
+entity invoice{
+*id
+--
+customer_id
+total
+}
+
+entity order{
+*invoice_id
+*product_id
+*date
+--
+*customer_id
+qty
+price
+}
+
+entity customer{
+*id
+--
+name
+}
+
+entity phone{
+*id
+--
+*customer_id
+*number
+}
+
+entity product{
+*id
+--
+name
+netto
+unit_id
+price
+}
+
+entity unit{
+*id
+--
+name
+}
+
+
+customer||--|{invoice
+invoice||--|{order
+order}|--||product
+
+customer||--|{phone
+unit||--|{product
+@enduml

@@ -1,0 +1,66 @@
+GET http://localhost:3000/api/users
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+###
+GET http://localhost:3000/api/customers
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+###
+GET http://localhost:3000/api/customers/2b964ffb-bb46-4e22-a01f-9b05e2da04f2/next
+# GET http://localhost:3000/api/customers/53a43260-e258-488e-8ce1-31e629a0281c/next
+# NOT FOUND
+# GET http://localhost:3000/api/customers/442CC609-0D92-45AA-B6B2-B8EADFD4D0EB/next
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+###
+# GET http://localhost:3000/api/customers/7d626604-92eb-4ad3-acff-ab50fd6140ea/prev
+# NOT FOUND
+GET http://localhost:3000/api/customers/d5d4779e-b17c-46c3-8b73-8ed0767d2010/prev
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+###
+# GET http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
+GET http://localhost:3000/api/customers/17FB443B-0110-4812-9A90-1A2BB9590922
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+###
+POST http://localhost:3000/api/customers
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+
+{
+  "username":"tst-username",
+  "email":"tst@email.com",
+  "fullname":"tst-fullname"
+}
+
+###
+# DELETE http://localhost:3000/api/customers/EE03AEC0-4AD4-4A0C-B0D9-393C403DA3B9
+DELETE http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
+Accept: application/json
+Content-Type: application/json
+# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+# miftah@email.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5MzUwMTE5OSwibmJmIjoxNjg1MTIwNDAwfQ.t3T81FzqvgC09BsgoYi2V1IUKgR5nzLNGBSm74OOUIk
+
+###
+PUT http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5MzUwMTE5OSwibmJmIjoxNjg1MTIwNDAwfQ.t3T81FzqvgC09BsgoYi2V1IUKgR5nzLNGBSm74OOUIk
+
+{
+  "full":"Rizki",
+  "name":"Muhammad"
+}

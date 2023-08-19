@@ -1,0 +1,7 @@
+Jadi MVPnya jika dijelaskan dengan flow kira2 akan ada fitur-fitur berikut ini:
+v customer order barang ke penjual, -> invoice
+customer bayar invoice lunas atau bisa dicicil,
+selama invoice belum lunas makan uang dipegang oleh penjual,
+ketika invoice sudah lunas maka uang diteruskan/disetorkan ke agen.
+
+sharepoint api pagination uri: "https://bankmandiri1.sharepoint.com/sites/mpm/documentonline/_api/web/lists/GetByTitle(%27MasterDocType%27)/items?%24skiptoken=Paged%3dTRUE%26p_ID%3d147&%24filter=EPT+eq+%27Agile%27+or+EPT+eq+%27Waterfall%27"
