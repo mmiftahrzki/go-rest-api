@@ -28,7 +28,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJva
 
 ###
 # GET http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
-GET http://localhost:3000/api/customers/17FB443B-0110-4812-9A90-1A2BB9590922
+GET http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
+# GET http://localhost:3000/api/customers/17FB443B-0110-4812-9A90-1A2BB9590922
 Accept: application/json
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
@@ -46,8 +47,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJva
 }
 
 ###
-# DELETE http://localhost:3000/api/customers/EE03AEC0-4AD4-4A0C-B0D9-393C403DA3B9
-DELETE http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
+DELETE http://localhost:3000/api/customers/EE03AEC0-4AD4-4A0C-B0D9-393C403DA3B9
+# DELETE http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
 Accept: application/json
 Content-Type: application/json
 # Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
@@ -56,11 +57,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRha
 
 ###
 PUT http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
+# PUT http://localhost:3000/api/customers/A224E0B3-3476-4317-9B3F-C22943B009B9
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5MzUwMTE5OSwibmJmIjoxNjg1MTIwNDAwfQ.t3T81FzqvgC09BsgoYi2V1IUKgR5nzLNGBSm74OOUIk
+#shirohige65@rocketmail.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE2OTM1MDExOTksIm5iZiI6MTY4NTEyMDQwMH0.ABCh1RY9Qz9rWaCiLu9XuCOwGfLbjfLOi_uL9dKxv5U
+#miftah@email.com
+# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5MzUwMTE5OSwibmJmIjoxNjg1MTIwNDAwfQ.t3T81FzqvgC09BsgoYi2V1IUKgR5nzLNGBSm74OOUIk
 
 {
-  "full":"Rizki",
-  "name":"Muhammad"
+  "fullname":"Rizki",
+  "name":"Muhammad",
+  "gender":"male"
 }

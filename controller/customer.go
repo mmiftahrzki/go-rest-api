@@ -359,7 +359,7 @@ func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, 
 func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	res := model.NewResponse()
 
-	_, err := uuid.Parse(params.ByName("id"))
+	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
 		log.Println(err)
 
@@ -378,6 +378,32 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	customer, err := c.model.SelectById(req.Context(), id)
+	if err != nil {
+		log.Println(err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+
+		return
+	}
+
+	if reflect.ValueOf(customer).IsZero() {
+		res.Message = fmt.Sprintf("customer with id: %s not found", id)
+
+		res_json, err := json.Marshal(res)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write(res_json)
+
+		return
+	}
+
 	payload := model.Customer{}
 	decoder := json.NewDecoder(req.Body)
 	err = decoder.Decode(&payload)
@@ -391,7 +417,7 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	}
 
 	if reflect.ValueOf(payload).IsZero() {
-		res.Data["customer"] = payload
+		res.Message = http.StatusText(http.StatusBadRequest)
 
 		res_json, err := json.Marshal(res)
 		if err != nil {
@@ -402,39 +428,54 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write(res_json)
 
 		return
 	}
 
-	// customer, err := c.model.SelectById(req.Context(), id)
-	// if err != nil {
-	// 	log.Println(err)
+	if customer.CreatedBy != middleware.Claims.Email {
+		res.Message = "you can't modify someone else's resource"
 
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		res_json, err := json.Marshal(res)
+		if err != nil {
+			log.Println(err)
 
-	// 	return
-	// }
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
-	// if reflect.ValueOf(customer).IsZero() {
-	// 	res.Message = fmt.Sprintf("customer with id: %s not found", id)
+			return
+		}
 
-	// 	res_json, err := json.Marshal(res)
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-	// 	}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write(res_json)
 
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	w.WriteHeader(http.StatusNotFound)
-	// 	w.Write(res_json)
+		return
+	}
 
-	// 	return
-	// }
+	customer, err = c.model.Update(req.Context(), customer, payload)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
-	// customer, err = c.model.UpdateById(req.Context(), customer)
+		return
+	}
+
+	res.Message = "success updating customer data"
+	res.Data["customer"] = customer
+
+	res_json, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res_json)
 }
 
 func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -491,7 +532,7 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 	}
 
 	if customer.CreatedBy != middleware.Claims.Email {
-		res.Message = http.StatusText(http.StatusUnauthorized)
+		res.Message = "you can't modify someone else's resource"
 
 		res_json, err := json.Marshal(res)
 		if err != nil {

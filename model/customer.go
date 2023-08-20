@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mmiftahrzki/go-rest-api/middleware"
@@ -30,19 +32,19 @@ type ICustomerModel interface {
 	SelectById(ctx context.Context, id uuid.UUID) (Customer, error)
 	SelectNext(ctx context.Context, customer Customer) ([]Customer, error)
 	SelectPrev(ctx context.Context, customer Customer) ([]Customer, error)
-	UpdateById(ctx context.Context, customer Customer) (Customer, error)
+	Update(ctx context.Context, customer, payload Customer) (Customer, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type customerModel struct {
 	database_connection *sql.DB
-	columns             string
+	fields              string
 }
 
 func NewCustomerModel(db *sql.DB) ICustomerModel {
 	return &customerModel{
 		database_connection: db,
-		columns:             "id_text, fullname, gender, email, username, date_of_birth, created_at, created_by",
+		fields:              "id_text, fullname, gender, email, username, date_of_birth, created_at, created_by",
 	}
 }
 
@@ -91,7 +93,7 @@ func (model *customerModel) Insert(ctx context.Context, username, email, fullnam
 func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 	var customers []Customer
 
-	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.created_by=? ORDER BY fullname ASC LIMIT ?", model.columns)
+	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.created_by=? ORDER BY fullname ASC LIMIT ?", model.fields)
 	rows, err := model.database_connection.QueryContext(ctx, sql_query, middleware.Claims.Email, Max_limit+1)
 	if err != nil {
 		return nil, err
@@ -157,7 +159,7 @@ func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 func (model *customerModel) SelectById(ctx context.Context, id uuid.UUID) (Customer, error) {
 	var customer Customer
 
-	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.id_text=?", model.columns)
+	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.id_text=?", model.fields)
 	rows, err := model.database_connection.QueryContext(ctx, sql_query, id)
 	if err != nil {
 		return customer, err
@@ -219,7 +221,7 @@ func (model *customerModel) SelectById(ctx context.Context, id uuid.UUID) (Custo
 func (model *customerModel) SelectNext(ctx context.Context, customer Customer) ([]Customer, error) {
 	var customers []Customer
 
-	sql_query := fmt.Sprintf("SELECT %s FROM customer WHERE fullname > ? ORDER BY fullname ASC LIMIT ?", model.columns)
+	sql_query := fmt.Sprintf("SELECT %s FROM customer WHERE fullname > ? ORDER BY fullname ASC LIMIT ?", model.fields)
 	rows, err := model.database_connection.QueryContext(ctx, sql_query, customer.Fullname, Max_limit+1)
 	if err != nil {
 		return nil, err
@@ -284,7 +286,7 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 	SELECT b.* FROM (
 		SELECT %s FROM portfolio.customer a WHERE a.fullname < ? ORDER BY a.fullname DESC LIMIT ?
 		) b
-		ORDER BY b.fullname ASC;`, model.columns)
+		ORDER BY b.fullname ASC;`, model.fields)
 	rows, err := model.database_connection.QueryContext(ctx, sql_query, customer.Fullname, Max_limit+1)
 	if err != nil {
 		return nil, err
@@ -342,8 +344,42 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 	return customers, nil
 }
 
-func (model *customerModel) UpdateById(ctx context.Context, customer Customer) (Customer, error) {
-	panic("")
+func (model *customerModel) Update(ctx context.Context, customer, payload Customer) (Customer, error) {
+	var updated_customer Customer
+	fields := []string{}
+
+	if !reflect.ValueOf(payload.Fullname).IsZero() {
+		fields = append(fields, fmt.Sprintf("fullname='%s'", payload.Fullname))
+	}
+
+	if !reflect.ValueOf(payload.Gender).IsZero() {
+		fields = append(fields, fmt.Sprintf("gender='%s'", payload.Gender))
+	}
+
+	if !reflect.ValueOf(payload.Email).IsZero() {
+		fields = append(fields, fmt.Sprintf("email='%s'", payload.Email))
+	}
+
+	if !reflect.ValueOf(payload.Username).IsZero() {
+		fields = append(fields, fmt.Sprintf("username='%s'", payload.Username))
+	}
+
+	if !reflect.ValueOf(payload.DateOfBirth).IsZero() {
+		fields = append(fields, fmt.Sprintf("date_of_birth='%s'", payload.DateOfBirth.Format(time.RFC3339)))
+	}
+
+	sql_query := fmt.Sprintf("UPDATE customer SET %s WHERE id_text=?", strings.Join(fields, ", "))
+	_, err := model.database_connection.ExecContext(ctx, sql_query, customer.Id)
+	if err != nil {
+		return updated_customer, err
+	}
+
+	updated_customer, err = model.SelectById(ctx, customer.Id)
+	if err != nil {
+		return updated_customer, err
+	}
+
+	return updated_customer, nil
 }
 
 func (model *customerModel) Delete(ctx context.Context, id uuid.UUID) error {
