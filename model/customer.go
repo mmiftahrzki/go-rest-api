@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -15,13 +16,15 @@ import (
 
 const Max_limit int = 10
 
+type date time.Time
+
 type Customer struct {
 	Id          uuid.UUID `json:"id"`
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
 	Fullname    string    `json:"fullname"`
 	Gender      string    `json:"gender"`
-	DateOfBirth time.Time `json:"date_of_birth"`
+	DateOfBirth date      `json:"date_of_birth"`
 	CreatedAt   time.Time `json:"created_at"`
 	CreatedBy   string    `json:"created_by"`
 }
@@ -46,6 +49,27 @@ func NewCustomerModel(db *sql.DB) ICustomerModel {
 		database_connection: db,
 		fields:              "id_text, fullname, gender, email, username, date_of_birth, created_at, created_by",
 	}
+}
+
+func (j *date) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), "\"")
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+
+	*j = date(t)
+
+	return nil
+}
+
+func (j date) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Time(j))
+}
+
+func (j date) Format() string {
+	t := time.Time(j)
+	return t.Format("2006-01-02")
 }
 
 func (model *customerModel) Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) error {
@@ -144,7 +168,7 @@ func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date_of_birth.Time
+			customer.DateOfBirth = date(date_of_birth.Time)
 		}
 
 		customer.CreatedAt = created_at
@@ -211,7 +235,7 @@ func (model *customerModel) SelectById(ctx context.Context, id uuid.UUID) (Custo
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date_of_birth.Time
+			customer.DateOfBirth = date(date_of_birth.Time)
 		}
 	}
 
@@ -270,7 +294,7 @@ func (model *customerModel) SelectNext(ctx context.Context, customer Customer) (
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date_of_birth.Time
+			customer.DateOfBirth = date(date_of_birth.Time)
 		}
 
 		customers = append(customers, customer)
@@ -335,7 +359,7 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date_of_birth.Time
+			customer.DateOfBirth = date(date_of_birth.Time)
 		}
 
 		customers = append(customers, customer)
@@ -347,29 +371,35 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 func (model *customerModel) Update(ctx context.Context, customer, payload Customer) (Customer, error) {
 	var updated_customer Customer
 	fields := []string{}
+	struct_fields := []interface{}{customer.Id}
 
 	if !reflect.ValueOf(payload.Fullname).IsZero() {
-		fields = append(fields, fmt.Sprintf("fullname='%s'", payload.Fullname))
+		fields = append(fields, "fullname=?")
+		struct_fields = append(struct_fields, payload.Fullname)
 	}
 
 	if !reflect.ValueOf(payload.Gender).IsZero() {
-		fields = append(fields, fmt.Sprintf("gender='%s'", payload.Gender))
+		fields = append(fields, "gender=?")
+		struct_fields = append(struct_fields, payload.Gender)
 	}
 
 	if !reflect.ValueOf(payload.Email).IsZero() {
-		fields = append(fields, fmt.Sprintf("email='%s'", payload.Email))
+		fields = append(fields, "email=?")
+		struct_fields = append(struct_fields, payload.Email)
 	}
 
 	if !reflect.ValueOf(payload.Username).IsZero() {
-		fields = append(fields, fmt.Sprintf("username='%s'", payload.Username))
+		fields = append(fields, "username=?")
+		struct_fields = append(struct_fields, payload.Username)
 	}
 
 	if !reflect.ValueOf(payload.DateOfBirth).IsZero() {
-		fields = append(fields, fmt.Sprintf("date_of_birth='%s'", payload.DateOfBirth.Format(time.RFC3339)))
+		fields = append(fields, "date_of_birth=?")
+		struct_fields = append(struct_fields, payload.DateOfBirth.Format())
 	}
 
 	sql_query := fmt.Sprintf("UPDATE customer SET %s WHERE id_text=?", strings.Join(fields, ", "))
-	_, err := model.database_connection.ExecContext(ctx, sql_query, customer.Id)
+	_, err := model.database_connection.ExecContext(ctx, sql_query, struct_fields...)
 	if err != nil {
 		return updated_customer, err
 	}
