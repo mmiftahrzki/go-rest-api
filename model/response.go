@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -18,6 +19,12 @@ func NewResponse() response {
 
 func (r *response) Send(w http.ResponseWriter) {
 	w.Write([]byte("sukses"))
+}
+
+func (res *response) ToJson() []byte {
+	json_encoded_res, _ := json.Marshal(res)
+
+	return json_encoded_res
 }
 
 // func (r *response) toJson() ([]byte, error) {
