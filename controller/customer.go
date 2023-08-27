@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/model"
@@ -38,42 +39,38 @@ func NewCustomerController(model model.ICustomerModel) ICustomerController {
 
 func (c *customerController) Create(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	var new_customer model.Customer
+	res := model.NewResponse()
 
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&new_customer)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		res.Message = http.StatusText(http.StatusBadRequest)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(res.ToJson())
 
 		return
 	}
 
-	err = c.model.Insert(req.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, new_customer.DateOfBirth)
+	err = c.model.Insert(req.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, time.Time(new_customer.DateOfBirth))
 	if err != nil {
+		log.Println(err)
+
 		mysql_error, ok := err.(*mysql.MySQLError)
 		if ok {
-			res := model.NewResponse()
-
 			if mysql_error.Number == 1062 {
 				res.Message = fmt.Sprintf("customer with username: %s already exist", new_customer.Username)
 
-				res_json, err := json.Marshal(res)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-				}
-
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusConflict)
-				w.Write(res_json)
+				w.Write(res.ToJson())
 
 				return
 			}
 		}
-
-		log.Println(err)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
@@ -106,18 +103,8 @@ func (c *customerController) FindAll(w http.ResponseWriter, req *http.Request, p
 	res.Data["customers"] = customers
 	res.Message = "success retrieving customers data"
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		log.Println(err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
 
 func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -129,15 +116,9 @@ func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, 
 
 		res.Message = "invalid id"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -155,15 +136,9 @@ func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, 
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = fmt.Sprintf("customer with id: %s not found", id)
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -171,16 +146,8 @@ func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, 
 	res.Message = "success retrieve customer data"
 	res.Data["customer"] = customer
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
 
 func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -192,15 +159,9 @@ func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, 
 
 		res.Message = "invalid id"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -218,17 +179,9 @@ func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, 
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = http.StatusText(http.StatusNotFound)
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -253,19 +206,9 @@ func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, 
 	res.Data["customers"] = customers
 	res.Message = "success retrieving customers data"
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		log.Println(err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
 
 func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -277,15 +220,9 @@ func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, 
 
 		res.Message = "invalid id"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -303,17 +240,9 @@ func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, 
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = http.StatusText(http.StatusNotFound)
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -341,19 +270,9 @@ func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, 
 	res.Data["customers"] = customers
 	res.Message = "success retrieving customers data"
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		log.Println(err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
 
 func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -365,15 +284,9 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 
 		res.Message = "invalid id"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -391,15 +304,9 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = fmt.Sprintf("customer with id: %s not found", id)
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -410,8 +317,11 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		res.Message = http.StatusText(http.StatusBadRequest)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -419,17 +329,9 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	if reflect.ValueOf(payload).IsZero() {
 		res.Message = http.StatusText(http.StatusBadRequest)
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -437,25 +339,30 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	if customer.CreatedBy != middleware.Claims.Email {
 		res.Message = "you can't modify someone else's resource"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			log.Println(err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
 
 	customer, err = c.model.Update(req.Context(), customer, payload)
 	if err != nil {
+		log.Println(err)
+
+		mysql_error, ok := err.(*mysql.MySQLError)
+		if ok {
+			if mysql_error.Number == 1292 {
+				res.Message = http.StatusText(http.StatusBadRequest)
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write(res.ToJson())
+			}
+
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
@@ -465,17 +372,9 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	res.Message = "success updating customer data"
 	res.Data["customer"] = customer
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
 
 func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -487,17 +386,9 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 
 		res.Message = "invalid id"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -515,18 +406,8 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = "Customer deleted successfully!"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			log.Println(err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -534,19 +415,9 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 	if customer.CreatedBy != middleware.Claims.Email {
 		res.Message = "you can't modify someone else's resource"
 
-		res_json, err := json.Marshal(res)
-		if err != nil {
-			log.Println(err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write(res_json)
+		w.Write(res.ToJson())
 
 		return
 	}
@@ -563,16 +434,6 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 
 	res.Message = "Customer deleted successfully!"
 
-	res_json, err := json.Marshal(res)
-	if err != nil {
-		log.Println(err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(res_json)
+	w.Write(res.ToJson())
 }
