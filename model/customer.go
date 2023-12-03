@@ -9,24 +9,46 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mmiftahrzki/go-rest-api/middleware"
-
 	"github.com/google/uuid"
+	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 )
 
 const Max_limit int = 10
 
-type date time.Time
+// type date time.Time
+type Date time.Time
+
+func (j *Date) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), "\"")
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+
+	*j = Date(t)
+
+	return nil
+}
+
+func (j Date) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Time(j))
+}
+
+func (j Date) Format() string {
+	t := time.Time(j)
+
+	return t.Format("2006-01-02")
+}
 
 type Customer struct {
-	Id          uuid.UUID `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	Fullname    string    `json:"fullname"`
-	Gender      string    `json:"gender"`
-	DateOfBirth date      `json:"date_of_birth"`
+	Id          uuid.UUID `json:"id" validate:"required,uuid4"`
+	Username    string    `json:"username" validate:"required,alphanum,max=100"`
+	Email       string    `json:"email" validate:"required,email,max=100"`
+	Fullname    string    `json:"fullname" validate:"required,max=255"`
+	Gender      string    `json:"gender" validate:"oneof=male female other"`
+	DateOfBirth Date      `json:"date_of_birth" validate:"date"`
 	CreatedAt   time.Time `json:"created_at"`
-	CreatedBy   string    `json:"created_by"`
+	CreatedBy   string    `json:"created_by" validate:"required,email,max=320"`
 }
 
 type ICustomerModel interface {
@@ -49,27 +71,6 @@ func NewCustomerModel(db *sql.DB) ICustomerModel {
 		database_connection: db,
 		fields:              "id_text, fullname, gender, email, username, date_of_birth, created_at, created_by",
 	}
-}
-
-func (j *date) UnmarshalJSON(b []byte) error {
-	s := strings.Trim(string(b), "\"")
-	t, err := time.Parse("2006-01-02", s)
-	if err != nil {
-		return err
-	}
-
-	*j = date(t)
-
-	return nil
-}
-
-func (j date) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(j))
-}
-
-func (j date) Format() string {
-	t := time.Time(j)
-	return t.Format("2006-01-02")
 }
 
 func (model *customerModel) Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) error {
@@ -109,7 +110,8 @@ func (model *customerModel) Insert(ctx context.Context, username, email, fullnam
 			?
 		)`
 
-	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, middleware.Claims.Email)
+	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, middleware.Claims.Email)
+	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, auth.Claims.Email)
 
 	return err
 }
@@ -118,13 +120,13 @@ func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 	var customers []Customer
 
 	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.created_by=? ORDER BY fullname ASC LIMIT ?", model.fields)
-	rows, err := model.database_connection.QueryContext(ctx, sql_query, middleware.Claims.Email, Max_limit+1)
+	// rows, err := model.database_connection.QueryContext(ctx, sql_query, middleware.Claims.Email, Max_limit+1)
+	rows, err := model.database_connection.QueryContext(ctx, sql_query, auth.Claims.Email, Max_limit+1)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		rows.Close()
-		fmt.Println("rows closed")
 	}()
 
 	var customer Customer
@@ -168,7 +170,7 @@ func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date(date_of_birth.Time)
+			customer.DateOfBirth = Date(date_of_birth.Time)
 		}
 
 		customer.CreatedAt = created_at
@@ -235,7 +237,7 @@ func (model *customerModel) SelectById(ctx context.Context, id uuid.UUID) (Custo
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date(date_of_birth.Time)
+			customer.DateOfBirth = Date(date_of_birth.Time)
 		}
 	}
 
@@ -294,7 +296,7 @@ func (model *customerModel) SelectNext(ctx context.Context, customer Customer) (
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date(date_of_birth.Time)
+			customer.DateOfBirth = Date(date_of_birth.Time)
 		}
 
 		customers = append(customers, customer)
@@ -359,7 +361,7 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 		}
 
 		if date_of_birth.Valid {
-			customer.DateOfBirth = date(date_of_birth.Time)
+			customer.DateOfBirth = Date(date_of_birth.Time)
 		}
 
 		customers = append(customers, customer)
@@ -414,7 +416,8 @@ func (model *customerModel) Update(ctx context.Context, customer, payload Custom
 
 func (model *customerModel) Delete(ctx context.Context, id uuid.UUID) error {
 	sql_query := "DELETE FROM portfolio.customer a WHERE a.id_text=? AND a.created_by=?"
-	_, err := model.database_connection.ExecContext(ctx, sql_query, id, middleware.Claims.Email)
+	// _, err := model.database_connection.ExecContext(ctx, sql_query, id, middleware.Claims.Email)
+	_, err := model.database_connection.ExecContext(ctx, sql_query, id, auth.Claims.Email)
 	if err != nil {
 		return err
 	}

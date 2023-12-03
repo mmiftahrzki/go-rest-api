@@ -9,15 +9,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mmiftahrzki/go-rest-api/middleware"
+	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/model"
+	"github.com/mmiftahrzki/go-rest-api/response"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 )
 
-type ICustomerController interface {
+type ICustomer interface {
 	Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
@@ -27,19 +28,19 @@ type ICustomerController interface {
 	Delete(w http.ResponseWriter, r *http.Request, params httprouter.Params)
 }
 
-type customerController struct {
+type customer struct {
 	model model.ICustomerModel
 }
 
-func NewCustomerController(model model.ICustomerModel) ICustomerController {
-	return &customerController{
+func NewCustomer(model model.ICustomerModel) ICustomer {
+	return &customer{
 		model: model,
 	}
 }
 
-func (c *customerController) Create(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) Create(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	var new_customer model.Customer
-	res := model.NewResponse()
+	res := response.New()
 
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&new_customer)
@@ -81,7 +82,7 @@ func (c *customerController) Create(w http.ResponseWriter, req *http.Request, pa
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (c *customerController) FindAll(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) FindAll(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	customers, err := c.model.SelectAll(req.Context())
 	if err != nil {
 		log.Println(err)
@@ -92,7 +93,7 @@ func (c *customerController) FindAll(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	res := model.NewResponse()
+	res := response.New()
 
 	if len(customers) == model.Max_limit+1 {
 		res.Data["__next"] = fmt.Sprintf("%s:%s/api/customers/%s/next", os.Getenv("BASE_URL"), os.Getenv("PORT"), customers[model.Max_limit-1].Id)
@@ -107,8 +108,8 @@ func (c *customerController) FindAll(w http.ResponseWriter, req *http.Request, p
 	w.Write(res.ToJson())
 }
 
-func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := model.NewResponse()
+func (c *customer) FindById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -134,7 +135,7 @@ func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, 
 	}
 
 	if reflect.ValueOf(customer).IsZero() {
-		res.Message = fmt.Sprintf("customer with id: %s not found", id)
+		res.Message = fmt.Sprintf("customer with id: %s is not found", id)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -150,8 +151,8 @@ func (c *customerController) FindById(w http.ResponseWriter, req *http.Request, 
 	w.Write(res.ToJson())
 }
 
-func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := model.NewResponse()
+func (c *customer) FindNext(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -198,7 +199,7 @@ func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, 
 
 	if len(customers) == model.Max_limit+1 {
 		res.Data["__prev"] = fmt.Sprintf("%s:%s/api/customers/%s/prev", os.Getenv("BASE_URL"), os.Getenv("PORT"), (customers[0].Id).String())
-		res.Data["__next"] = "localhost:3000/api/customers/" + (customers[model.Max_limit-1].Id).String() + "/next"
+		res.Data["__next"] = fmt.Sprintf("%s:%s/api/customers/%s/next", os.Getenv("BASE_URL"), os.Getenv("PORT"), (customers[model.Max_limit-1].Id).String())
 
 		customers = customers[:model.Max_limit]
 	}
@@ -211,8 +212,8 @@ func (c *customerController) FindNext(w http.ResponseWriter, req *http.Request, 
 	w.Write(res.ToJson())
 }
 
-func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := model.NewResponse()
+func (c *customer) FindPrev(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -275,8 +276,8 @@ func (c *customerController) FindPrev(w http.ResponseWriter, req *http.Request, 
 	w.Write(res.ToJson())
 }
 
-func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := model.NewResponse()
+func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -336,7 +337,8 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if customer.CreatedBy != middleware.Claims.Email {
+	// if customer.CreatedBy != middleware.Claims.Email {
+	if customer.CreatedBy != auth.Claims.Email {
 		res.Message = "you can't modify someone else's resource"
 
 		w.Header().Set("Content-Type", "application/json")
@@ -377,8 +379,8 @@ func (c *customerController) UpdateById(w http.ResponseWriter, req *http.Request
 	w.Write(res.ToJson())
 }
 
-func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := model.NewResponse()
+func (c *customer) Delete(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -412,7 +414,8 @@ func (c *customerController) Delete(w http.ResponseWriter, req *http.Request, pa
 		return
 	}
 
-	if customer.CreatedBy != middleware.Claims.Email {
+	// if customer.CreatedBy != middleware.Claims.Email {
+	if customer.CreatedBy != auth.Claims.Email {
 		res.Message = "you can't modify someone else's resource"
 
 		w.Header().Set("Content-Type", "application/json")
