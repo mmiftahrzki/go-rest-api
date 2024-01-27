@@ -24,3 +24,4 @@ go.work
 .env
 .vscode
 notes.md
+database/customer.sql
