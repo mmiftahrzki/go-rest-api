@@ -10,10 +10,9 @@ import (
 	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/model"
-	"github.com/mmiftahrzki/go-rest-api/response"
+	"github.com/mmiftahrzki/go-rest-api/router"
 
 	"github.com/joho/godotenv"
-	"github.com/julienschmidt/httprouter"
 )
 
 const Max_data_per_call = 10
@@ -33,15 +32,9 @@ func main() {
 	customer_model := model.NewCustomerModel(db)
 	// customer_controller := controller.NewCustomerController(customer_model, 10)
 	customer_controller := controller.NewCustomer(customer_model)
-	router := httprouter.New()
-	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		response := response.New()
-		response.Message = "the resource you are looking is not found"
+	// router := httprouter.New()
+	router := router.New()
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(response.ToJson())
-	})
 	router.GET("/api/customers", customer_controller.FindAll)
 	router.POST("/api/customers", customer_controller.Create)
 	router.GET("/api/customers/:id/next", customer_controller.FindNext)
