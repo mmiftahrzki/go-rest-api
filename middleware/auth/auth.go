@@ -1,44 +1,48 @@
 package auth
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/mmiftahrzki/go-rest-api/middleware"
+	"github.com/julienschmidt/httprouter"
+	"github.com/mmiftahrzki/go-rest-api/response"
+	"github.com/mmiftahrzki/go-rest-api/router"
 )
-
-// type middleware struct {
-// 	next http.Handler
-// 	w    http.ResponseWriter
-// 	r    *http.Request
-// }
 
 type JwtClaims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims
 }
 
-var ErrEmptyAuth = errors.New("authorization header not found")
-var ErrInvalidAuth = errors.New("invalid authorization header")
-var Claims *JwtClaims
+// type auth struct {
+// }
 
-const auth_key = "Authorization"
+type jwtContextKey int
 
-func extractAuthTokenStr(r *http.Request) (string, error) {
+const key jwtContextKey = iota
+const req_header_auth_key string = "Authorization"
+
+var errEmptyAuth = errors.New("auth: authorization header not found")
+var errInvalidAuth = errors.New("auth: invalid authorization header")
+
+func extractAuthTokenStr(auth_value string) (string, error) {
 	var token_str string
 
-	auth_value := r.Header.Get(auth_key)
 	if len(auth_value) == 0 {
-		return token_str, ErrEmptyAuth
+		return token_str, errEmptyAuth
 	}
 
 	auth_value_fields := strings.Fields(auth_value)
 	if len(auth_value_fields) != 2 || auth_value_fields[0] != "Bearer" {
-		return token_str, ErrInvalidAuth
+		return token_str, errInvalidAuth
 	}
 
 	token_str = auth_value_fields[1]
@@ -46,76 +50,108 @@ func extractAuthTokenStr(r *http.Request) (string, error) {
 	return token_str, nil
 }
 
-func New() middleware.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		content_type := r.Header.Get("Content-Type")
-		if content_type != "application/json" {
-			w.WriteHeader(http.StatusBadRequest)
+func ExtractAuthClaims(ctx context.Context) (*JwtClaims, error) {
+	auth_value := ctx.Value(key)
+	claims, ok := auth_value.(*JwtClaims)
+	if !ok {
+		return nil, errors.New("auth: invalid jwt claims")
+	}
 
-			return errors.New(http.StatusText(http.StatusBadRequest))
-		}
+	return claims, nil
+}
 
-		token_str, err := extractAuthTokenStr(r)
+func New() router.Middleware {
+	return authHandler
+	// return func(next http.HandlerFunc) http.HandlerFunc {
+	// 	return http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+	// 		auth_value := r.Header.Get(req_header_auth_key)
+	// 		token_str, err := extractAuthTokenStr(auth_value)
+	// 		if err != nil {
+	// 			writer.WriteHeader(http.StatusBadRequest)
+
+	// 			return
+	// 		}
+
+	// 		token, err := jwt.ParseWithClaims(token_str, &JwtClaims{}, func(t *jwt.Token) (interface{}, error) {
+	// 			method, ok := t.Method.(*jwt.SigningMethodHMAC)
+	// 			if !ok || method != jwt.SigningMethodHS256 {
+	// 				return nil, fmt.Errorf("auth: invalid signing method")
+	// 			}
+
+	// 			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	// 		})
+
+	// 		if err != nil {
+	// 			log.Println(err)
+	// 			writer.WriteHeader(http.StatusBadRequest)
+
+	// 			return
+	// 		}
+
+	// 		claims, ok := token.Claims.(*JwtClaims)
+	// 		if !ok || !token.Valid {
+	// 			writer.WriteHeader(http.StatusBadRequest)
+
+	// 			return
+	// 		}
+
+	// 		r = r.WithContext(context.WithValue(r.Context(), key, claims))
+
+	// 		next.ServeHTTP(writer, r)
+	// 	})
+	// }
+}
+
+func authHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		auth_value := request.Header.Get(req_header_auth_key)
+		token_str, err := extractAuthTokenStr(auth_value)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			writer.WriteHeader(http.StatusBadRequest)
 
-			return errors.New(err.Error())
+			return
 		}
 
 		token, err := jwt.ParseWithClaims(token_str, &JwtClaims{}, func(t *jwt.Token) (interface{}, error) {
 			method, ok := t.Method.(*jwt.SigningMethodHMAC)
 			if !ok || method != jwt.SigningMethodHS256 {
-				return nil, fmt.Errorf("invalid signing method")
+				return nil, fmt.Errorf("auth: invalid signing method")
 			}
 
 			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
 		})
 
 		if err != nil {
-			http_err_status_code := http.StatusInternalServerError
+			log.Println(err)
+			writer.WriteHeader(http.StatusBadRequest)
 
-			err, ok := err.(*jwt.ValidationError)
-			if ok {
-				http_err_status_code = http.StatusBadRequest
-			}
-
-			w.WriteHeader(http_err_status_code)
-
-			return errors.New(err.Error())
+			return
 		}
 
 		claims, ok := token.Claims.(*JwtClaims)
 		if !ok || !token.Valid {
-			w.WriteHeader(http.StatusBadRequest)
+			writer.WriteHeader(http.StatusBadRequest)
 
-			return errors.New(err.Error())
+			return
 		}
 
-		Claims = claims
+		request = request.WithContext(context.WithValue(request.Context(), key, claims))
 
-		return nil
+		next.ServeHTTP(writer, request)
 	}
 }
 
-// func NewAuth(router *httprouter.Router) *middleware {
-// 	return &middleware{next: router}
+// func New() *auth {
+// 	return &auth{}
 // }
 
-// func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-// 	content_type := r.Header.Get("Content-Type")
-// 	if content_type != "application/json" {
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		w.Write([]byte(http.StatusText(http.StatusBadRequest)))
-
-// 		return
-// 	}
-
-// 	token_str, err := extractAuthTokenStr(r)
+// func (a *auth) ServeHTTP(writer http.ResponseWriter, req *http.Request) (context.Context, error) {
+// 	auth_value := req.Header.Get(req_header_auth_key)
+// 	token_str, err := extractAuthTokenStr(auth_value)
 // 	if err != nil {
-// 		w.WriteHeader(http.StatusUnauthorized)
-// 		w.Write([]byte(err.Error()))
+// 		writer.WriteHeader(http.StatusBadRequest)
 
-// 		return
+// 		return nil, err
 // 	}
 
 // 	token, err := jwt.ParseWithClaims(token_str, &JwtClaims{}, func(t *jwt.Token) (interface{}, error) {
@@ -128,20 +164,67 @@ func New() middleware.Handler {
 // 	})
 
 // 	if err != nil {
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		w.Write([]byte(err.Error()))
+// 		writer.WriteHeader(http.StatusInternalServerError)
 
-// 		return
+// 		return nil, err
 // 	}
 
 // 	claims, ok := token.Claims.(*JwtClaims)
 // 	if !ok || !token.Valid {
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		w.Write([]byte(err.Error()))
+// 		writer.WriteHeader(http.StatusBadRequest)
 
-// 		return
+// 		return nil, err
 // 	}
 
-// 	Claims = claims
-// 	m.next.ServeHTTP(w, r)
+// 	ctx := context.WithValue(req.Context(), key, claims)
+
+// 	return ctx, nil
 // }
+
+type Loginpayload struct {
+	Email string
+	// password string
+}
+
+func Token(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	var payload Loginpayload
+	response := response.New()
+
+	json_decoder := json.NewDecoder(request.Body)
+	err := json_decoder.Decode(&payload)
+	if err != nil {
+		log.Println(err)
+
+		response.Message = http.StatusText(http.StatusBadRequest)
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(response.ToJson())
+
+		return
+	}
+
+	registerd_claims := jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute))}
+	claims := JwtClaims{
+		Email:            payload.Email,
+		RegisteredClaims: registerd_claims,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	if err != nil {
+		log.Println(err)
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.Write(response.ToJson())
+
+		return
+	}
+
+	response.Data["token"] = ss
+	response.Message = "berhasil generate token"
+
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(200)
+	writer.Write(response.ToJson())
+}
