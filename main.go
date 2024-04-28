@@ -5,17 +5,15 @@ import (
 	"net/http"
 	"os"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 	"github.com/mmiftahrzki/go-rest-api/controller"
 	"github.com/mmiftahrzki/go-rest-api/database"
-	"github.com/mmiftahrzki/go-rest-api/middleware"
-	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
+	auth_pkg "github.com/mmiftahrzki/go-rest-api/middleware/auth"
+	"github.com/mmiftahrzki/go-rest-api/middleware/validation"
 	"github.com/mmiftahrzki/go-rest-api/model"
-	"github.com/mmiftahrzki/go-rest-api/router"
-
-	"github.com/joho/godotenv"
+	router_pkg "github.com/mmiftahrzki/go-rest-api/router"
 )
-
-const Max_data_per_call = 10
 
 func main() {
 	err := godotenv.Load(".env")
@@ -23,36 +21,37 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db, err := database.NewDB()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	db := database.New()
 	defer db.Close()
+	model_customer := model.NewCustomer(db, "customer_test")
+	controller_customer := controller.NewCustomer(model_customer)
 
-	customer_model := model.NewCustomerModel(db)
-	// customer_controller := controller.NewCustomerController(customer_model, 10)
-	customer_controller := controller.NewCustomer(customer_model)
-	// router := httprouter.New()
-	router := router.New()
+	createCustomer := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodPost}
+	getAllCustomers := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodGet}
+	updateCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodPut}
+	deleteCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodDelete}
+	getToken := router_pkg.Endpoint{Path: "/api/auth/token", Method: http.MethodPost}
+	getCustomerById := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodGet}
 
-	router.GET("/api/customers", customer_controller.FindAll)
-	router.POST("/api/customers", customer_controller.Create)
-	router.GET("/api/customers/:id/next", customer_controller.FindNext)
-	router.GET("/api/customers/:id/prev", customer_controller.FindPrev)
-	router.GET("/api/customers/:id", customer_controller.FindById)
-	router.DELETE("/api/customers/:id", customer_controller.Delete)
-	router.PUT("/api/customers/:id", customer_controller.UpdateById)
+	router := router_pkg.New()
+	auth := auth_pkg.New()
+	customerValidation := validation.New()
 
-	middleware := middleware.New(*router)
-	auth := auth.New()
+	router.AddRoute(createCustomer, controller_customer.Create)
+	router.AddRoute(getAllCustomers, controller_customer.FindAll)
+	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.FindNext)
+	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/prev", Method: http.MethodGet}, controller_customer.FindPrev)
+	router.AddRoute(updateCustomer, controller_customer.UpdateById)
+	router.AddRoute(deleteCustomer, controller_customer.Delete)
+	router.AddRoute(getCustomerById, controller_customer.FindById)
+	router.AddRoute(getToken, auth_pkg.Token)
 
-	middleware.Add(auth)
+	router.AddMiddlewareExcept(auth, getToken)
+	router.AddMiddlewareOnly(customerValidation, createCustomer)
 
 	server := http.Server{
-		Addr: os.Getenv("BASE_URL") + ":" + os.Getenv("PORT"),
-		// Handler: auth,
-		Handler: middleware,
-		// Handler: router,
+		Addr:    os.Getenv("BASE_URL") + ":" + os.Getenv("PORT"),
+		Handler: router,
 	}
 
 	err = server.ListenAndServe()

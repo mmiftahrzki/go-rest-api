@@ -25,7 +25,7 @@ type ICustomer interface {
 	FindPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	UpdateById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
-	Delete(w http.ResponseWriter, r *http.Request, params httprouter.Params)
+	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }
 
 type customer struct {
@@ -38,25 +38,25 @@ func NewCustomer(model model.ICustomerModel) ICustomer {
 	}
 }
 
-func (c *customer) Create(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	var new_customer model.Customer
 	res := response.New()
 
-	decoder := json.NewDecoder(req.Body)
+	decoder := json.NewDecoder(request.Body)
 	err := decoder.Decode(&new_customer)
 	if err != nil {
 		log.Println(err)
 
 		res.Message = http.StatusText(http.StatusBadRequest)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	err = c.model.Insert(req.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, time.Time(new_customer.DateOfBirth))
+	err = c.model.Insert(request.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, time.Time(new_customer.DateOfBirth))
 	if err != nil {
 		log.Println(err)
 
@@ -65,50 +65,50 @@ func (c *customer) Create(w http.ResponseWriter, req *http.Request, params httpr
 			if mysql_error.Number == 1062 {
 				res.Message = fmt.Sprintf("customer with username: %s already exist", new_customer.Username)
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusConflict)
-				w.Write(res.ToJson())
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(http.StatusConflict)
+				writer.Write(res.ToJson())
 
 				return
 			}
 		}
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	writer.WriteHeader(http.StatusCreated)
 }
 
-func (c *customer) FindAll(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	customers, err := c.model.SelectAll(req.Context())
+func (c *customer) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	response := response.New()
+
+	customers, err := c.model.SelectAll(request.Context())
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(response.ToJson()))
 
 		return
 	}
 
-	res := response.New()
-
 	if len(customers) == model.Max_limit+1 {
-		res.Data["__next"] = fmt.Sprintf("%s:%s/api/customers/%s/next", os.Getenv("BASE_URL"), os.Getenv("PORT"), customers[model.Max_limit-1].Id)
+		response.Data["__next"] = fmt.Sprintf("%s:%s/api/customers/%s/next", os.Getenv("BASE_URL"), os.Getenv("PORT"), customers[model.Max_limit-1].Id)
 
 		customers = customers[:model.Max_limit]
 	}
 
-	res.Data["customers"] = customers
-	res.Message = "success retrieving customers data"
+	response.Data["customers"] = customers
+	response.Message = "success retrieving customers data"
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(response.ToJson())
 }
 
-func (c *customer) FindById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -117,19 +117,19 @@ func (c *customer) FindById(w http.ResponseWriter, req *http.Request, params htt
 
 		res.Message = "invalid id"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err := c.model.SelectById(req.Context(), id)
+	customer, err := c.model.SelectById(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -137,9 +137,9 @@ func (c *customer) FindById(w http.ResponseWriter, req *http.Request, params htt
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = fmt.Sprintf("customer with id: %s is not found", id)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write(res.ToJson())
 
 		return
 	}
@@ -147,11 +147,11 @@ func (c *customer) FindById(w http.ResponseWriter, req *http.Request, params htt
 	res.Message = "success retrieve customer data"
 	res.Data["customer"] = customer
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(res.ToJson())
 }
 
-func (c *customer) FindNext(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) FindNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -160,19 +160,19 @@ func (c *customer) FindNext(w http.ResponseWriter, req *http.Request, params htt
 
 		res.Message = "invalid id"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err := c.model.SelectById(req.Context(), id)
+	customer, err := c.model.SelectById(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -180,19 +180,19 @@ func (c *customer) FindNext(w http.ResponseWriter, req *http.Request, params htt
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = http.StatusText(http.StatusNotFound)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customers, err := c.model.SelectNext(req.Context(), customer)
+	customers, err := c.model.SelectNext(request.Context(), customer)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -207,12 +207,12 @@ func (c *customer) FindNext(w http.ResponseWriter, req *http.Request, params htt
 	res.Data["customers"] = customers
 	res.Message = "success retrieving customers data"
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	writer.Write(res.ToJson())
 }
 
-func (c *customer) FindPrev(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) FindPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -221,19 +221,19 @@ func (c *customer) FindPrev(w http.ResponseWriter, req *http.Request, params htt
 
 		res.Message = "invalid id"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err := c.model.SelectById(req.Context(), id)
+	customer, err := c.model.SelectById(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -241,19 +241,19 @@ func (c *customer) FindPrev(w http.ResponseWriter, req *http.Request, params htt
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = http.StatusText(http.StatusNotFound)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customers, err := c.model.SelectPrev(req.Context(), customer)
+	customers, err := c.model.SelectPrev(request.Context(), customer)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -271,12 +271,12 @@ func (c *customer) FindPrev(w http.ResponseWriter, req *http.Request, params htt
 	res.Data["customers"] = customers
 	res.Message = "success retrieving customers data"
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	writer.Write(res.ToJson())
 }
 
-func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -285,19 +285,19 @@ func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params h
 
 		res.Message = "invalid id"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err := c.model.SelectById(req.Context(), id)
+	customer, err := c.model.SelectById(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -305,24 +305,24 @@ func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params h
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = fmt.Sprintf("customer with id: %s not found", id)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
 	payload := model.Customer{}
-	decoder := json.NewDecoder(req.Body)
+	decoder := json.NewDecoder(request.Body)
 	err = decoder.Decode(&payload)
 	if err != nil {
 		log.Println(err)
 
 		res.Message = http.StatusText(http.StatusBadRequest)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
@@ -330,25 +330,26 @@ func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params h
 	if reflect.ValueOf(payload).IsZero() {
 		res.Message = http.StatusText(http.StatusBadRequest)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	// if customer.CreatedBy != middleware.Claims.Email {
-	if customer.CreatedBy != auth.Claims.Email {
+	// if customer.CreatedBy != auth.Claims.Email {
+	request.Context().Value("")
+	if customer.CreatedBy != "" {
 		res.Message = "you can't modify someone else's resource"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusUnauthorized)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err = c.model.Update(req.Context(), customer, payload)
+	customer, err = c.model.Update(request.Context(), customer, payload)
 	if err != nil {
 		log.Println(err)
 
@@ -357,16 +358,16 @@ func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params h
 			if mysql_error.Number == 1292 {
 				res.Message = http.StatusText(http.StatusBadRequest)
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write(res.ToJson())
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(http.StatusBadRequest)
+				writer.Write(res.ToJson())
 			}
 
 			return
 		}
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -374,33 +375,42 @@ func (c *customer) UpdateById(w http.ResponseWriter, req *http.Request, params h
 	res.Message = "success updating customer data"
 	res.Data["customer"] = customer
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	writer.Write(res.ToJson())
 }
 
-func (c *customer) Delete(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	res := response.New()
+func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	claims, err := auth.ExtractAuthClaims(request.Context())
+	if err != nil {
+		log.Println(err)
 
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	res := response.New()
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
 		log.Println(err)
 
 		res.Message = "invalid id"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	customer, err := c.model.SelectById(req.Context(), id)
+	customer, err := c.model.SelectById(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
 		return
 	}
@@ -408,35 +418,38 @@ func (c *customer) Delete(w http.ResponseWriter, req *http.Request, params httpr
 	if reflect.ValueOf(customer).IsZero() {
 		res.Message = "Customer deleted successfully!"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	// if customer.CreatedBy != middleware.Claims.Email {
-	if customer.CreatedBy != auth.Claims.Email {
+	// var claims auth.JwtClaims
+	// bearer := request.Context().Value(auth.JWTContextKey)
+	// claims, _ = bearer.(auth.JwtClaims)
+
+	if customer.CreatedBy != claims.Email {
 		res.Message = "you can't modify someone else's resource"
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write(res.ToJson())
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusUnauthorized)
+		writer.Write(res.ToJson())
 
 		return
 	}
 
-	err = c.model.Delete(req.Context(), customer.Id)
-	if err != nil {
-		log.Println(err)
+	// err = c.model.Delete(request.Context(), customer.Id)
+	// if err != nil {
+	// 	log.Println(err)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+	// 	writer.WriteHeader(http.StatusInternalServerError)
+	// 	writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 
-		return
-	}
+	// 	return
+	// }
 
 	res.Message = "Customer deleted successfully!"
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(res.ToJson())
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(res.ToJson())
 }

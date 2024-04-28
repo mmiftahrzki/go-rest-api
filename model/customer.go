@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 
 const Max_limit int = 10
 
-// type date time.Time
 type Date time.Time
 
 func (j *Date) UnmarshalJSON(b []byte) error {
@@ -63,15 +61,29 @@ type ICustomerModel interface {
 
 type customerModel struct {
 	database_connection *sql.DB
+	table               string
 	fields              string
 }
 
-func NewCustomerModel(db *sql.DB) ICustomerModel {
+func NewCustomer(db *sql.DB, table_name string) ICustomerModel {
 	return &customerModel{
+		table:               table_name,
 		database_connection: db,
 		fields:              "id_text, fullname, gender, email, username, date_of_birth, created_at, created_by",
 	}
 }
+
+// func extractAuthClaims(ctx context.Context) (auth.JwtClaims, error) {
+// 	var claims auth.JwtClaims
+
+// 	bearer := ctx.Value(auth.JWTContextKey)
+// 	claims, ok := bearer.(auth.JwtClaims)
+// 	if !ok {
+// 		return claims, errors.New("not a bearer authentication")
+// 	}
+
+// 	return claims, nil
+// }
 
 func (model *customerModel) Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) error {
 	id := uuid.New()
@@ -79,6 +91,11 @@ func (model *customerModel) Insert(ctx context.Context, username, email, fullnam
 	if err != nil {
 		return err
 	}
+
+	// claims, err := extractAuthClaims(ctx)
+	// if err != nil {
+	// 	return err
+	// }
 
 	now := time.Now().In(loc)
 
@@ -110,26 +127,27 @@ func (model *customerModel) Insert(ctx context.Context, username, email, fullnam
 			?
 		)`
 
-	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, middleware.Claims.Email)
-	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, auth.Claims.Email)
+	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, claims.Email)
+	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, "")
 
 	return err
 }
 
 func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
 	var customers []Customer
+	var customer Customer
 
-	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.created_by=? ORDER BY fullname ASC LIMIT ?", model.fields)
-	// rows, err := model.database_connection.QueryContext(ctx, sql_query, middleware.Claims.Email, Max_limit+1)
-	rows, err := model.database_connection.QueryContext(ctx, sql_query, auth.Claims.Email, Max_limit+1)
+	claims, err := auth.ExtractAuthClaims(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		rows.Close()
-	}()
 
-	var customer Customer
+	sql_query := fmt.Sprintf("SELECT %s FROM portfolio.customer a WHERE a.created_by=? ORDER BY fullname ASC LIMIT ?", model.fields)
+	rows, err := model.database_connection.QueryContext(ctx, sql_query, claims.Email, Max_limit+1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var id sql.NullString
@@ -190,10 +208,7 @@ func (model *customerModel) SelectById(ctx context.Context, id uuid.UUID) (Custo
 	if err != nil {
 		return customer, err
 	}
-	defer func() {
-		fmt.Println("rows closed")
-		rows.Close()
-	}()
+	defer rows.Close()
 
 	if rows.Next() {
 		var id sql.NullString
@@ -372,55 +387,66 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 
 func (model *customerModel) Update(ctx context.Context, customer, payload Customer) (Customer, error) {
 	var updated_customer Customer
-	fields := []string{}
-	struct_fields := []interface{}{customer.Id}
+	// claims, err := extractAuthClaims(ctx)
+	// if err != nil {
+	// 	return updated_customer, err
+	// }
 
-	if !reflect.ValueOf(payload.Fullname).IsZero() {
-		fields = append(fields, "fullname=?")
-		struct_fields = append(struct_fields, payload.Fullname)
-	}
+	// fields := []string{}
+	// struct_fields := []interface{}{customer.Id}
 
-	if !reflect.ValueOf(payload.Gender).IsZero() {
-		fields = append(fields, "gender=?")
-		struct_fields = append(struct_fields, payload.Gender)
-	}
+	// if !reflect.ValueOf(payload.Fullname).IsZero() {
+	// 	fields = append(fields, "fullname=?")
+	// 	struct_fields = append(struct_fields, payload.Fullname)
+	// }
 
-	if !reflect.ValueOf(payload.Email).IsZero() {
-		fields = append(fields, "email=?")
-		struct_fields = append(struct_fields, payload.Email)
-	}
+	// if !reflect.ValueOf(payload.Gender).IsZero() {
+	// 	fields = append(fields, "gender=?")
+	// 	struct_fields = append(struct_fields, payload.Gender)
+	// }
 
-	if !reflect.ValueOf(payload.Username).IsZero() {
-		fields = append(fields, "username=?")
-		struct_fields = append(struct_fields, payload.Username)
-	}
+	// if !reflect.ValueOf(payload.Email).IsZero() {
+	// 	fields = append(fields, "email=?")
+	// 	struct_fields = append(struct_fields, payload.Email)
+	// }
 
-	if !reflect.ValueOf(payload.DateOfBirth).IsZero() {
-		fields = append(fields, "date_of_birth=?")
-		struct_fields = append(struct_fields, payload.DateOfBirth.Format())
-	}
+	// if !reflect.ValueOf(payload.Username).IsZero() {
+	// 	fields = append(fields, "username=?")
+	// 	struct_fields = append(struct_fields, payload.Username)
+	// }
 
-	sql_query := fmt.Sprintf("UPDATE customer SET %s WHERE id_text=?", strings.Join(fields, ", "))
-	_, err := model.database_connection.ExecContext(ctx, sql_query, struct_fields...)
-	if err != nil {
-		return updated_customer, err
-	}
+	// if !reflect.ValueOf(payload.DateOfBirth).IsZero() {
+	// 	fields = append(fields, "date_of_birth=?")
+	// 	struct_fields = append(struct_fields, payload.DateOfBirth.Format())
+	// }
 
-	updated_customer, err = model.SelectById(ctx, customer.Id)
-	if err != nil {
-		return updated_customer, err
-	}
+	// struct_fields = append(struct_fields, claims.Email)
+
+	// sql_query := fmt.Sprintf("UPDATE customer SET %s WHERE id_text=? AND created_by=?", strings.Join(fields, ", "))
+	// _, err = model.database_connection.ExecContext(ctx, sql_query, struct_fields...)
+	// if err != nil {
+	// 	return updated_customer, err
+	// }
+
+	// updated_customer, err = model.SelectById(ctx, customer.Id)
+	// if err != nil {
+	// 	return updated_customer, err
+	// }
 
 	return updated_customer, nil
 }
 
 func (model *customerModel) Delete(ctx context.Context, id uuid.UUID) error {
-	sql_query := "DELETE FROM portfolio.customer a WHERE a.id_text=? AND a.created_by=?"
-	// _, err := model.database_connection.ExecContext(ctx, sql_query, id, middleware.Claims.Email)
-	_, err := model.database_connection.ExecContext(ctx, sql_query, id, auth.Claims.Email)
-	if err != nil {
-		return err
-	}
+	// claims, err := extractAuthClaims(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// sql_query := "DELETE FROM portfolio.customer a WHERE a.id_text=? AND a.created_by=?"
+	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, claims.Email)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

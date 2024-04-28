@@ -1,22 +1,33 @@
 GET http://localhost:3000/api/users
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
+
+###
+POST  http://localhost:3000/api/auth/token
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "miftah@email.com"
+}
 
 ###
 GET http://localhost:3000/api/customers
+# GET http://103.150.191.60/api/customers
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 
 ###
-GET http://localhost:3000/api/customers/2b964ffb-bb46-4e22-a01f-9b05e2da04f2/next
+# GET http://localhost:3000/api/customers/2b964ffb-bb46-4e22-a01f-9b05e2da04f2/next
+GET http://103.150.191.60/api/customers/2b964ffb-bb46-4e22-a01f-9b05e2da04f2/next
 # GET http://localhost:3000/api/customers/53a43260-e258-488e-8ce1-31e629a0281c/next
 # NOT FOUND
 # GET http://localhost:3000/api/customers/442CC609-0D92-45AA-B6B2-B8EADFD4D0EB/next
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 
 ###
 # GET http://localhost:3000/api/customers/7d626604-92eb-4ad3-acff-ab50fd6140ea/prev
@@ -24,7 +35,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJva
 GET http://localhost:3000/api/customers/d5d4779e-b17c-46c3-8b73-8ed0767d2010/prev
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 
 ###
 # GET http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
@@ -32,19 +43,20 @@ GET http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
 # GET http://localhost:3000/api/customers/17FB443B-0110-4812-9A90-1A2BB9590922
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 
 ###
 POST http://localhost:3000/api/customers
+# POST http://103.150.191.60/api/customers
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 
   # "email":"tst@email.com",
 {
-  "username":"tst-username",
-  "email":"tst",
-  "fullname":"tst-fullname"
+  "username":"tst-miftah-rizki",
+  "email":"tstmiftahrizki@email.com",
+  "fullname":"Miftah Rizki"
 }
 
 ###
@@ -52,9 +64,9 @@ DELETE http://localhost:3000/api/customers/EE03AEC0-4AD4-4A0C-B0D9-393C403DA3B9
 # DELETE http://localhost:3000/api/customers/c1d4ba53-32f3-4146-94c2-5406aac67707
 Accept: application/json
 Content-Type: application/json
-# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 # miftah@email.com
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5ODc3MTU5OSwibmJmIjoxNjg1MTIwNDAwfQ.-cNalp5iwfLYvi_KO_QM5JuFBhr2bpGJQnL21OYmOrk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTcxMTkwNDM5OSwibmJmIjoxNjg1MTIwNDAwfQ.wUTqWwX_9HLb8WyfFKHqpLGbiVGbtSIEipm6eb6U5Fw
 
 ###
 PUT http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
@@ -62,9 +74,9 @@ PUT http://localhost:3000/api/customers/F224E0B3-3476-4317-9B3F-C22943B009B9
 Accept: application/json
 Content-Type: application/json
 #shirohige65@rocketmail.com
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDQwNDE5OTksIm5iZiI6MTY4NTEyMDQwMH0.NRTjPM4623xwOsZFDmQThw8mQJRrSwezqn9jL1VPh6o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNoaXJvaGlnZTY1QHJvY2tldG1haWwuY29tIiwiaWF0IjoxNjg1MTIwNDAwLCJleHAiOjE3MDY3MjAzOTksIm5iZiI6MTY4NTEyMDQwMH0.is5IK6sFpeczOx8Y8pIXqhdwpS9wgzm7c_Ys4ybir00
 #miftah@email.com
-# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTY5ODc3MTU5OSwibmJmIjoxNjg1MTIwNDAwfQ.-cNalp5iwfLYvi_KO_QM5JuFBhr2bpGJQnL21OYmOrk
+# Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pZnRhaEBlbWFpbC5jb20iLCJpYXQiOjE2ODUxMjA0MDAsImV4cCI6MTcxMTkwNDM5OSwibmJmIjoxNjg1MTIwNDAwfQ.wUTqWwX_9HLb8WyfFKHqpLGbiVGbtSIEipm6eb6U5Fw
 
 {
   "fullname":"Rizki",

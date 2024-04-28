@@ -10,8 +10,8 @@ type response struct {
 	Data    map[string]interface{} `json:"data"`
 }
 
-func New() response {
-	return response{
+func New() *response {
+	return &response{
 		Message: "Terjadi kesalahan di sisi penyedia layanan.",
 		Data:    map[string]interface{}{},
 	}
