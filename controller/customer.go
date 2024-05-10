@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
+	"github.com/mmiftahrzki/go-rest-api/middleware/validation"
 	"github.com/mmiftahrzki/go-rest-api/model"
 	"github.com/mmiftahrzki/go-rest-api/response"
 
@@ -39,24 +40,18 @@ func NewCustomer(model model.ICustomerModel) ICustomer {
 }
 
 func (c *customer) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	var new_customer model.Customer
 	res := response.New()
-
-	decoder := json.NewDecoder(request.Body)
-	err := decoder.Decode(&new_customer)
+	new_customer, err := validation.ExtractCustomerFromContext(request.Context())
 	if err != nil {
 		log.Println(err)
 
-		res.Message = http.StatusText(http.StatusBadRequest)
-
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(res.ToJson())
 
 		return
 	}
 
-	err = c.model.Insert(request.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, time.Time(new_customer.DateOfBirth))
+	id, err := c.model.Insert(request.Context(), new_customer.Username, new_customer.Email, new_customer.Fullname, new_customer.Gender, time.Time(new_customer.DateOfBirth))
 	if err != nil {
 		log.Println(err)
 
@@ -79,7 +74,11 @@ func (c *customer) Create(writer http.ResponseWriter, request *http.Request, par
 		return
 	}
 
+	res.Message = "customer created successfully"
+	res.Data["id"] = id.String()
+
 	writer.WriteHeader(http.StatusCreated)
+	writer.Write([]byte(res.ToJson()))
 }
 
 func (c *customer) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

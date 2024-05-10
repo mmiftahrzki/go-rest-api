@@ -18,6 +18,11 @@ type Date time.Time
 
 func (j *Date) UnmarshalJSON(b []byte) error {
 	s := strings.Trim(string(b), "\"")
+
+	if string(s) == "null" || string(s) == "" {
+		return nil
+	}
+
 	t, err := time.Parse("2006-01-02", s)
 	if err != nil {
 		return err
@@ -39,18 +44,18 @@ func (j Date) Format() string {
 }
 
 type Customer struct {
-	Id          uuid.UUID `json:"id" validate:"required,uuid4"`
+	Id          uuid.UUID `json:"id"`
 	Username    string    `json:"username" validate:"required,alphanum,max=100"`
 	Email       string    `json:"email" validate:"required,email,max=100"`
 	Fullname    string    `json:"fullname" validate:"required,max=255"`
 	Gender      string    `json:"gender" validate:"oneof=male female other"`
-	DateOfBirth Date      `json:"date_of_birth" validate:"date"`
+	DateOfBirth Date      `json:"date_of_birth" validate:"daterequired"`
 	CreatedAt   time.Time `json:"created_at"`
-	CreatedBy   string    `json:"created_by" validate:"required,email,max=320"`
+	CreatedBy   string    `json:"created_by"`
 }
 
 type ICustomerModel interface {
-	Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) error
+	Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) (uuid.UUID, error)
 	SelectAll(ctx context.Context) ([]Customer, error)
 	SelectById(ctx context.Context, id uuid.UUID) (Customer, error)
 	SelectNext(ctx context.Context, customer Customer) ([]Customer, error)
@@ -73,30 +78,15 @@ func NewCustomer(db *sql.DB, table_name string) ICustomerModel {
 	}
 }
 
-// func extractAuthClaims(ctx context.Context) (auth.JwtClaims, error) {
-// 	var claims auth.JwtClaims
+func (model *customerModel) Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) (uuid.UUID, error) {
+	var id uuid.UUID
 
-// 	bearer := ctx.Value(auth.JWTContextKey)
-// 	claims, ok := bearer.(auth.JwtClaims)
-// 	if !ok {
-// 		return claims, errors.New("not a bearer authentication")
-// 	}
-
-// 	return claims, nil
-// }
-
-func (model *customerModel) Insert(ctx context.Context, username, email, fullname, gender string, dob time.Time) error {
-	id := uuid.New()
 	loc, err := time.LoadLocation("Asia/Jakarta")
 	if err != nil {
-		return err
+		return id, err
 	}
 
-	// claims, err := extractAuthClaims(ctx)
-	// if err != nil {
-	// 	return err
-	// }
-
+	id = uuid.New()
 	now := time.Now().In(loc)
 
 	if gender == "" {
@@ -127,10 +117,17 @@ func (model *customerModel) Insert(ctx context.Context, username, email, fullnam
 			?
 		)`
 
-	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, claims.Email)
-	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, "")
+	claims, err := auth.ExtractAuthClaims(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
 
-	return err
+	_, err = model.database_connection.ExecContext(ctx, sql_query, id, id.String(), username, email, fullname, gender, dob, now, claims.Email)
+	if err != nil {
+		id = uuid.Nil
+	}
+
+	return id, err
 }
 
 func (model *customerModel) SelectAll(ctx context.Context) ([]Customer, error) {
