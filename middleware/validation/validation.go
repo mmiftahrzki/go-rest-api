@@ -1,49 +1,89 @@
 package validation
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"log"
 	"net/http"
-	"reflect"
-	"strings"
+	"time"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/mmiftahrzki/go-rest-api/middleware"
+	pkg_validator "github.com/go-playground/validator/v10"
 	"github.com/mmiftahrzki/go-rest-api/model"
+	"github.com/mmiftahrzki/go-rest-api/router"
 )
 
-func New() middleware.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		paths := strings.Split(r.URL.Path, "/")
+type jwtContextKey int
 
-		if len(paths) > 0 {
-			v := validator.New()
-			endpoint := paths[2]
+const key jwtContextKey = iota
 
-			if endpoint == "customers" {
-				var customer *model.Customer
+var validator *pkg_validator.Validate
 
-				json_decoder := json.NewDecoder(r.Body)
-				err := json_decoder.Decode(&customer)
-				if err != nil {
-					return err
-				}
+func init() {
+	validator = pkg_validator.New()
 
-				err = v.Struct(customer)
-				if err != nil {
-					return err
-				}
-			}
+	validator.RegisterValidation("daterequired", func(fl pkg_validator.FieldLevel) bool {
+		value, ok := fl.Field().Interface().(model.Date)
+		if !ok {
+			return false
 		}
 
-		return nil
+		if value == model.Date(time.Time{}) {
+			return false
+		}
+
+		return true
+	})
+}
+
+func New() router.Middleware {
+	return validationHandler
+}
+
+func validationHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		r_body, err := io.ReadAll(request.Body)
+		if err != nil {
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		customer := &model.Customer{}
+		err = json.Unmarshal(r_body, customer)
+		if err != nil {
+			log.Println(err)
+
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		err = validator.Struct(customer)
+		if err != nil {
+			log.Println(err)
+
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		request = request.WithContext(context.WithValue(request.Context(), key, customer))
+
+		next.ServeHTTP(writer, request)
 	}
 }
 
-func ValidateDateType(field reflect.Value) interface{} {
-	_, ok := field.Interface().(model.Date)
-	if ok {
-		return nil
+func ExtractCustomerFromContext(ctx context.Context) (*model.Customer, error) {
+	customer_value := ctx.Value(key)
+	customer, ok := customer_value.(*model.Customer)
+	if !ok {
+		return nil, errors.New("validation: invalid customer")
 	}
 
-	return nil
+	return customer, nil
 }
