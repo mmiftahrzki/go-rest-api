@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/middleware/validation"
 	"github.com/mmiftahrzki/go-rest-api/model"
 	"github.com/mmiftahrzki/go-rest-api/response"
@@ -380,16 +379,6 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 }
 
 func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	claims, err := auth.ExtractAuthClaims(request.Context())
-	if err != nil {
-		log.Println(err)
-
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
 	res := response.New()
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -404,7 +393,7 @@ func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, par
 		return
 	}
 
-	customer, err := c.model.SelectById(request.Context(), id)
+	err = c.model.Delete(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 
@@ -414,41 +403,6 @@ func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, par
 		return
 	}
 
-	if reflect.ValueOf(customer).IsZero() {
-		res.Message = "Customer deleted successfully!"
-
-		writer.Header().Set("Content-Type", "application/json")
-		writer.Write(res.ToJson())
-
-		return
-	}
-
-	// var claims auth.JwtClaims
-	// bearer := request.Context().Value(auth.JWTContextKey)
-	// claims, _ = bearer.(auth.JwtClaims)
-
-	if customer.CreatedBy != claims.Email {
-		res.Message = "you can't modify someone else's resource"
-
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusUnauthorized)
-		writer.Write(res.ToJson())
-
-		return
-	}
-
-	// err = c.model.Delete(request.Context(), customer.Id)
-	// if err != nil {
-	// 	log.Println(err)
-
-	// 	writer.WriteHeader(http.StatusInternalServerError)
-	// 	writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-	// 	return
-	// }
-
-	res.Message = "Customer deleted successfully!"
-
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(res.ToJson())
+	writer.WriteHeader(http.StatusNoContent)
 }

@@ -434,16 +434,16 @@ func (model *customerModel) Update(ctx context.Context, customer, payload Custom
 }
 
 func (model *customerModel) Delete(ctx context.Context, id uuid.UUID) error {
-	// claims, err := extractAuthClaims(ctx)
-	// if err != nil {
-	// 	return err
-	// }
+	claims, err := auth.ExtractAuthClaims(ctx)
+	if err != nil {
+		return err
+	}
 
-	// sql_query := "DELETE FROM portfolio.customer a WHERE a.id_text=? AND a.created_by=?"
-	// _, err = model.database_connection.ExecContext(ctx, sql_query, id, claims.Email)
-	// if err != nil {
-	// 	return err
-	// }
+	sql_query := fmt.Sprintf("DELETE FROM portfolio.%s a WHERE a.id_text=? AND a.created_by=?", model.table)
+	_, err = model.database_connection.ExecContext(ctx, sql_query, id, claims.Email)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
