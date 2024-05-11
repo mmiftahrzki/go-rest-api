@@ -57,7 +57,7 @@ func (c *customer) Create(writer http.ResponseWriter, request *http.Request, par
 		mysql_error, ok := err.(*mysql.MySQLError)
 		if ok {
 			if mysql_error.Number == 1062 {
-				res.Message = fmt.Sprintf("customer with username: %s already exist", new_customer.Username)
+				res.Message = fmt.Sprintf("customer dengan username: %s sudah ada", new_customer.Username)
 
 				writer.Header().Set("Content-Type", "application/json")
 				writer.WriteHeader(http.StatusConflict)
@@ -73,7 +73,7 @@ func (c *customer) Create(writer http.ResponseWriter, request *http.Request, par
 		return
 	}
 
-	res.Message = "customer created successfully"
+	res.Message = "berhasil membuat customer baru"
 	res.Data["id"] = id.String()
 
 	writer.WriteHeader(http.StatusCreated)
@@ -100,7 +100,7 @@ func (c *customer) ReadAll(writer http.ResponseWriter, request *http.Request, pa
 	}
 
 	response.Data["customers"] = customers
-	response.Message = "success retrieving customers data"
+	response.Message = "berhasil mendapatkan data customer"
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(response.ToJson())
@@ -113,7 +113,7 @@ func (c *customer) ReadById(writer http.ResponseWriter, request *http.Request, p
 	if err != nil {
 		log.Println(err)
 
-		res.Message = "invalid id"
+		res.Message = "id tidak valid"
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
@@ -132,8 +132,9 @@ func (c *customer) ReadById(writer http.ResponseWriter, request *http.Request, p
 		return
 	}
 
-	if reflect.ValueOf(customer).IsZero() {
-		res.Message = fmt.Sprintf("customer with id: %s is not found", id)
+	empty_customer := model.Customer{}
+	if customer == empty_customer {
+		res.Message = fmt.Sprintf("customer dengan id: %s tidak ditemukan", id)
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusNotFound)
@@ -142,7 +143,7 @@ func (c *customer) ReadById(writer http.ResponseWriter, request *http.Request, p
 		return
 	}
 
-	res.Message = "success retrieve customer data"
+	res.Message = "berhasil mendapatkan data customer"
 	res.Data["customer"] = customer
 
 	writer.Header().Set("Content-Type", "application/json")
@@ -156,7 +157,7 @@ func (c *customer) ReadNext(writer http.ResponseWriter, request *http.Request, p
 	if err != nil {
 		log.Println(err)
 
-		res.Message = "invalid id"
+		res.Message = "id tidak valid"
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
@@ -203,7 +204,7 @@ func (c *customer) ReadNext(writer http.ResponseWriter, request *http.Request, p
 	}
 
 	res.Data["customers"] = customers
-	res.Message = "success retrieving customers data"
+	res.Message = "berhasil mendapatkan data customer"
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
@@ -217,7 +218,7 @@ func (c *customer) ReadPrev(writer http.ResponseWriter, request *http.Request, p
 	if err != nil {
 		log.Println(err)
 
-		res.Message = "invalid id"
+		res.Message = "id tidak valid"
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
@@ -267,7 +268,7 @@ func (c *customer) ReadPrev(writer http.ResponseWriter, request *http.Request, p
 	}
 
 	res.Data["customers"] = customers
-	res.Message = "success retrieving customers data"
+	res.Message = "berhasil mendapatkan data customer"
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
@@ -282,7 +283,7 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 	if err != nil {
 		log.Println(err)
 
-		res.Message = "invalid id"
+		res.Message = "id tidak valid"
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
@@ -331,7 +332,7 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 		return
 	}
 
-	res.Message = "success updating customer data"
+	res.Message = "berhasil memperbarui data customer"
 	res.Data["customer"] = customer
 
 	writer.Header().Set("Content-Type", "application/json")
@@ -346,7 +347,7 @@ func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, par
 	if err != nil {
 		log.Println(err)
 
-		res.Message = "invalid id"
+		res.Message = "id tidak valid"
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)

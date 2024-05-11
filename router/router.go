@@ -25,7 +25,7 @@ func New() *Myrouter {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := response.New()
-		response.Message = "the resource you are looking is not found"
+		response.Message = "sumber daya yang Anda cari tidak ditemukan"
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)
