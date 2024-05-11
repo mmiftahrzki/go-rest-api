@@ -20,10 +20,10 @@ import (
 
 type ICustomer interface {
 	Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
-	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
-	FindNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
-	FindPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
-	FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	ReadAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	ReadNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	ReadPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	ReadById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	UpdateById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }
@@ -80,7 +80,7 @@ func (c *customer) Create(writer http.ResponseWriter, request *http.Request, par
 	writer.Write([]byte(res.ToJson()))
 }
 
-func (c *customer) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (c *customer) ReadAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	response := response.New()
 
 	customers, err := c.model.SelectAll(request.Context())
@@ -106,7 +106,7 @@ func (c *customer) FindAll(writer http.ResponseWriter, request *http.Request, pa
 	writer.Write(response.ToJson())
 }
 
-func (c *customer) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (c *customer) ReadById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -149,7 +149,7 @@ func (c *customer) FindById(writer http.ResponseWriter, request *http.Request, p
 	writer.Write(res.ToJson())
 }
 
-func (c *customer) FindNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (c *customer) ReadNext(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))
@@ -210,7 +210,7 @@ func (c *customer) FindNext(writer http.ResponseWriter, request *http.Request, p
 	writer.Write(res.ToJson())
 }
 
-func (c *customer) FindPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (c *customer) ReadPrev(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
 
 	id, err := uuid.Parse(params.ByName("id"))

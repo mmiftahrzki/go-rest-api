@@ -64,7 +64,7 @@ func (mr *Myrouter) AddRoute(endpoint Endpoint, handle httprouter.Handle) {
 	mr.endpoints[key] = endpoint
 }
 
-func (mr *Myrouter) AddMiddleware(m Middleware) {
+func (mr *Myrouter) InsertMiddleware(m Middleware) {
 	if len(mr.endpoints) == 0 {
 		panic("router: tidak bisa menyisipkan middleware karena belum ada endpoint yang dirutekan")
 	}
@@ -76,7 +76,7 @@ func (mr *Myrouter) AddMiddleware(m Middleware) {
 	}
 }
 
-func (mr *Myrouter) AddMiddlewareExcept(m Middleware, endpoint Endpoint) {
+func (mr *Myrouter) InsertMiddlewareExcept(m Middleware, endpoint Endpoint) {
 	if len(mr.endpoints) == 0 {
 		panic("router: tidak bisa menyisipkan middleware karena belum ada endpoint yang dirutekan")
 	}
@@ -94,7 +94,7 @@ func (mr *Myrouter) AddMiddlewareExcept(m Middleware, endpoint Endpoint) {
 	}
 }
 
-func (mr *Myrouter) AddMiddlewareOnly(m Middleware, endpoint Endpoint) {
+func (mr *Myrouter) InsertMiddlewareOnly(m Middleware, endpoint Endpoint) {
 	if len(mr.endpoints) == 0 {
 		panic("router: tidak bisa menyisipkan middleware karena belum ada endpoint yang dirutekan")
 	}

@@ -23,7 +23,7 @@ func main() {
 
 	db := database.New()
 	defer db.Close()
-	model_customer := model.NewCustomer(db, "customer_test")
+	model_customer := model.NewCustomer(db, "customer")
 	controller_customer := controller.NewCustomer(model_customer)
 
 	createCustomer := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodPost}
@@ -38,16 +38,16 @@ func main() {
 	customerValidation := validation.New()
 
 	router.AddRoute(createCustomer, controller_customer.Create)
-	router.AddRoute(getAllCustomers, controller_customer.FindAll)
-	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.FindNext)
-	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/prev", Method: http.MethodGet}, controller_customer.FindPrev)
+	router.AddRoute(getAllCustomers, controller_customer.ReadAll)
+	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.ReadNext)
+	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/prev", Method: http.MethodGet}, controller_customer.ReadPrev)
 	router.AddRoute(updateCustomer, controller_customer.UpdateById)
 	router.AddRoute(deleteCustomer, controller_customer.Delete)
-	router.AddRoute(getCustomerById, controller_customer.FindById)
+	router.AddRoute(getCustomerById, controller_customer.ReadById)
 	router.AddRoute(getToken, auth_pkg.Token)
 
-	router.AddMiddlewareExcept(auth, getToken)
-	router.AddMiddlewareOnly(customerValidation, createCustomer)
+	router.InsertMiddlewareExcept(auth, getToken)
+	router.InsertMiddlewareOnly(customerValidation, createCustomer)
 
 	server := http.Server{
 		Addr:    os.Getenv("BASE_URL") + ":" + os.Getenv("PORT"),
