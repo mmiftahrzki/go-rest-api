@@ -60,7 +60,7 @@ type ICustomerModel interface {
 	SelectById(ctx context.Context, id uuid.UUID) (Customer, error)
 	SelectNext(ctx context.Context, customer Customer) ([]Customer, error)
 	SelectPrev(ctx context.Context, customer Customer) ([]Customer, error)
-	Update(ctx context.Context, customer, payload Customer) (Customer, error)
+	Update(ctx context.Context, payload Customer) (Customer, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -382,53 +382,109 @@ func (model *customerModel) SelectPrev(ctx context.Context, customer Customer) (
 	return customers, nil
 }
 
-func (model *customerModel) Update(ctx context.Context, customer, payload Customer) (Customer, error) {
+func (model *customerModel) Update(ctx context.Context, payload Customer) (Customer, error) {
 	var updated_customer Customer
-	// claims, err := extractAuthClaims(ctx)
-	// if err != nil {
-	// 	return updated_customer, err
-	// }
+	claims, err := auth.ExtractAuthClaims(ctx)
+	if err != nil {
+		return updated_customer, err
+	}
 
-	// fields := []string{}
-	// struct_fields := []interface{}{customer.Id}
+	fields := []string{}
+	struct_fields := []interface{}{}
 
-	// if !reflect.ValueOf(payload.Fullname).IsZero() {
-	// 	fields = append(fields, "fullname=?")
-	// 	struct_fields = append(struct_fields, payload.Fullname)
-	// }
+	if payload.Username != "" {
+		fields = append(fields, "username=?")
+		struct_fields = append(struct_fields, payload.Username)
+	}
 
-	// if !reflect.ValueOf(payload.Gender).IsZero() {
-	// 	fields = append(fields, "gender=?")
-	// 	struct_fields = append(struct_fields, payload.Gender)
-	// }
+	if payload.Fullname != "" {
+		fields = append(fields, "fullname=?")
+		struct_fields = append(struct_fields, payload.Fullname)
+	}
 
-	// if !reflect.ValueOf(payload.Email).IsZero() {
-	// 	fields = append(fields, "email=?")
-	// 	struct_fields = append(struct_fields, payload.Email)
-	// }
+	if payload.Email != "" {
+		fields = append(fields, "email=?")
+		struct_fields = append(struct_fields, payload.Email)
+	}
 
-	// if !reflect.ValueOf(payload.Username).IsZero() {
-	// 	fields = append(fields, "username=?")
-	// 	struct_fields = append(struct_fields, payload.Username)
-	// }
+	if payload.Gender != "" {
+		fields = append(fields, "gender=?")
+		struct_fields = append(struct_fields, payload.Gender)
+	}
 
-	// if !reflect.ValueOf(payload.DateOfBirth).IsZero() {
-	// 	fields = append(fields, "date_of_birth=?")
-	// 	struct_fields = append(struct_fields, payload.DateOfBirth.Format())
-	// }
+	empty_date := Date{}
+	if payload.DateOfBirth != empty_date {
+		fields = append(fields, "date_of_birth=?")
+		struct_fields = append(struct_fields, payload.DateOfBirth.Format())
+	}
 
-	// struct_fields = append(struct_fields, claims.Email)
+	struct_fields = append(struct_fields, payload.Id.String())
+	struct_fields = append(struct_fields, claims.Email)
 
-	// sql_query := fmt.Sprintf("UPDATE customer SET %s WHERE id_text=? AND created_by=?", strings.Join(fields, ", "))
-	// _, err = model.database_connection.ExecContext(ctx, sql_query, struct_fields...)
-	// if err != nil {
-	// 	return updated_customer, err
-	// }
+	tx, err := model.database_connection.BeginTx(ctx, nil)
+	if err != nil {
+		return updated_customer, err
+	}
+	defer tx.Rollback()
 
-	// updated_customer, err = model.SelectById(ctx, customer.Id)
-	// if err != nil {
-	// 	return updated_customer, err
-	// }
+	sql_query := fmt.Sprintf("UPDATE portfolio.%s SET %s WHERE id_text=? AND created_by=?", model.table, strings.Join(fields, ", "))
+	_, err = tx.ExecContext(ctx, sql_query, struct_fields...)
+	if err != nil {
+		return updated_customer, err
+	}
+
+	sql_query = fmt.Sprintf("SELECT %s FROM portfolio.%s WHERE id_text=? AND created_by=?", model.fields, model.table)
+	row := tx.QueryRowContext(ctx, sql_query, payload.Id.String(), claims.Email)
+
+	var id sql.NullString
+	var fullname sql.NullString
+	var gender sql.NullString
+	var email sql.NullString
+	var username sql.NullString
+	var date_of_birth sql.NullTime
+	var created_at time.Time
+	var created_by string
+
+	err = row.Scan(&id, &fullname, &gender, &email, &username, &date_of_birth, &created_at, &created_by)
+	if err != nil {
+		return updated_customer, err
+	}
+
+	if id.Valid {
+		updated_customer.Id, err = uuid.Parse(id.String)
+		if err != nil {
+			return updated_customer, err
+		}
+	}
+
+	if fullname.Valid {
+		updated_customer.Fullname = fullname.String
+	}
+
+	if gender.Valid {
+		updated_customer.Gender = gender.String
+	}
+
+	if email.Valid {
+		updated_customer.Email = email.String
+	}
+
+	if username.Valid {
+		updated_customer.Username = username.String
+	}
+
+	if date_of_birth.Valid {
+		updated_customer.DateOfBirth = Date(date_of_birth.Time)
+	}
+
+	updated_customer.CreatedAt = created_at
+	updated_customer.CreatedBy = created_by
+
+	err = tx.Commit()
+	if err != nil {
+		return updated_customer, err
+
+	}
 
 	return updated_customer, nil
 }

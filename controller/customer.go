@@ -276,6 +276,7 @@ func (c *customer) FindPrev(writer http.ResponseWriter, request *http.Request, p
 
 func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
+	var err error
 
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
@@ -285,26 +286,6 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(res.ToJson())
-
-		return
-	}
-
-	customer, err := c.model.SelectById(request.Context(), id)
-	if err != nil {
-		log.Println(err)
-
-		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-
-		return
-	}
-
-	if reflect.ValueOf(customer).IsZero() {
-		res.Message = fmt.Sprintf("customer with id: %s not found", id)
-
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusNotFound)
 		writer.Write(res.ToJson())
 
 		return
@@ -325,29 +306,9 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 		return
 	}
 
-	if reflect.ValueOf(payload).IsZero() {
-		res.Message = http.StatusText(http.StatusBadRequest)
+	payload.Id = id
 
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(res.ToJson())
-
-		return
-	}
-
-	// if customer.CreatedBy != auth.Claims.Email {
-	request.Context().Value("")
-	if customer.CreatedBy != "" {
-		res.Message = "you can't modify someone else's resource"
-
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusUnauthorized)
-		writer.Write(res.ToJson())
-
-		return
-	}
-
-	customer, err = c.model.Update(request.Context(), customer, payload)
+	customer, err := c.model.Update(request.Context(), payload)
 	if err != nil {
 		log.Println(err)
 
@@ -380,6 +341,7 @@ func (c *customer) UpdateById(writer http.ResponseWriter, request *http.Request,
 
 func (c *customer) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	res := response.New()
+
 	id, err := uuid.Parse(params.ByName("id"))
 	if err != nil {
 		log.Println(err)
