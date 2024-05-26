@@ -21,11 +21,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db := database.New()
+	db := database.GetDatabaseConnection()
+	// db := database.New()
 	defer db.Close()
+
 	model_customer := model.NewCustomer(db, "customer")
 	controller_customer := controller.NewCustomer(model_customer)
 
+	createUser := router_pkg.Endpoint{Path: "/api/users", Method: http.MethodPost}
+	signIn := router_pkg.Endpoint{Path: "/api/auth/signIn", Method: http.MethodPost}
 	createCustomer := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodPost}
 	getAllCustomers := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodGet}
 	updateCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodPut}
@@ -37,6 +41,8 @@ func main() {
 	auth := auth_pkg.New()
 	customerValidation := validation.New()
 
+	router.AddRoute(createUser, controller.CreateUser)
+	router.AddRoute(signIn, controller.ReadUser)
 	router.AddRoute(createCustomer, controller_customer.Create)
 	router.AddRoute(getAllCustomers, controller_customer.ReadAll)
 	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.ReadNext)
