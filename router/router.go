@@ -76,20 +76,21 @@ func (mr *Myrouter) InsertMiddleware(m Middleware) {
 	}
 }
 
-func (mr *Myrouter) InsertMiddlewareExcept(m Middleware, endpoint Endpoint) {
+func (mr *Myrouter) InsertMiddlewareExcept(middleware Middleware, endpoint Endpoint) {
 	if len(mr.endpoints) == 0 {
 		panic("router: tidak bisa menyisipkan middleware karena belum ada endpoint yang dirutekan")
 	}
 
 	for k := range mr.endpoints {
-		h, _, _ := mr.httprouter.Lookup(endpoint.Method, endpoint.Path)
-		key := fmt.Sprintf("%p", h)
+		handle, _, _ := mr.httprouter.Lookup(endpoint.Method, endpoint.Path)
+		key := fmt.Sprintf("%p", handle)
+
 		if key == k {
 			continue
 		}
-		
+
 		endpoint := mr.endpoints[k]
-		endpoint.middlewares = append(endpoint.middlewares, m)
+		endpoint.middlewares = append(endpoint.middlewares, middleware)
 		mr.endpoints[k] = endpoint
 	}
 }
@@ -98,9 +99,9 @@ func (mr *Myrouter) InsertMiddlewareOnly(m Middleware, endpoint Endpoint) {
 	if len(mr.endpoints) == 0 {
 		panic("router: tidak bisa menyisipkan middleware karena belum ada endpoint yang dirutekan")
 	}
-	
-	h, _, _ := mr.httprouter.Lookup(endpoint.Method, endpoint.Path)
-	key := fmt.Sprintf("%p", h)
+
+	handle, _, _ := mr.httprouter.Lookup(endpoint.Method, endpoint.Path)
+	key := fmt.Sprintf("%p", handle)
 	endpoint = mr.endpoints[key]
 	endpoint.middlewares = append(endpoint.middlewares, m)
 	mr.endpoints[key] = endpoint

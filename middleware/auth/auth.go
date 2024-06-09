@@ -101,8 +101,8 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 }
 
 type signinpayload struct {
-	Email string
-	// password string
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func NewSignInPayload() *signinpayload {
@@ -127,14 +127,15 @@ func Token(writer http.ResponseWriter, request *http.Request, params httprouter.
 		return
 	}
 
-	registerd_claims := jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute))}
-	claims := JwtClaims{
-		Email:            payload.Email,
-		RegisteredClaims: registerd_claims,
-	}
+	// registerd_claims := jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute))}
+	// claims := JwtClaims{
+	// 	Email:            payload.Email,
+	// 	RegisteredClaims: registerd_claims,
+	// }
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	// ss, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	token, err := GenerateToken(payload)
 	if err != nil {
 		log.Println(err)
 
@@ -144,10 +145,26 @@ func Token(writer http.ResponseWriter, request *http.Request, params httprouter.
 		return
 	}
 
-	response.Data["token"] = ss
+	response.Data["token"] = token
 	response.Message = "berhasil generate token"
 
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(200)
+	writer.WriteHeader(http.StatusOK)
 	writer.Write(response.ToJson())
+}
+
+func GenerateToken(payload signinpayload) (string, error) {
+	registerd_claims := jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute))}
+	claims := JwtClaims{
+		Email:            payload.Email,
+		RegisteredClaims: registerd_claims,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed_string, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	if err != nil {
+		return signed_string, err
+	}
+
+	return signed_string, nil
 }

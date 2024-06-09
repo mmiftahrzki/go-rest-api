@@ -29,13 +29,13 @@ func main() {
 	controller_customer := controller.NewCustomer(model_customer)
 
 	createUser := router_pkg.Endpoint{Path: "/api/users", Method: http.MethodPost}
-	signIn := router_pkg.Endpoint{Path: "/api/auth/signIn", Method: http.MethodPost}
+	signIn := router_pkg.Endpoint{Path: "/api/auth/signin", Method: http.MethodPost}
 	createCustomer := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodPost}
 	getAllCustomers := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodGet}
+	getCustomerById := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodGet}
 	updateCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodPut}
 	deleteCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodDelete}
 	getToken := router_pkg.Endpoint{Path: "/api/auth/token", Method: http.MethodPost}
-	getCustomerById := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodGet}
 
 	router := router_pkg.New()
 	auth := auth_pkg.New()
@@ -52,7 +52,7 @@ func main() {
 	router.AddRoute(getCustomerById, controller_customer.ReadById)
 	router.AddRoute(getToken, auth_pkg.Token)
 
-	router.InsertMiddlewareExcept(auth, getToken)
+	router.InsertMiddlewareExcept(auth, signIn)
 	router.InsertMiddlewareOnly(customerValidation, createCustomer)
 
 	server := http.Server{

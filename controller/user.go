@@ -16,15 +16,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/mmiftahrzki/go-rest-api/database"
+	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/model"
 	"github.com/mmiftahrzki/go-rest-api/response"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type userLoginPayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
 
 // type controller struct {
 // 	model model.User
@@ -143,23 +139,23 @@ func CreateUser(writer http.ResponseWriter, request *http.Request, params httpro
 }
 
 func ReadUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	res := response.New()
+	response := response.New()
+	writer.Header().Set("Content-Type", "application/json")
 
 	// marshal http request body payload to user login payload type struct
 	request_body, err := io.ReadAll(request.Body)
 	if err != nil {
-		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusInternalServerError)
 
 		return
 	}
 
-	user_login := &userLoginPayload{}
+	user_login := auth.NewSignInPayload()
 	err = json.Unmarshal(request_body, user_login)
 	if err != nil {
 		log.Println(err)
 
-		writer.Header().Set("Content-Type", "application/json")
+		// writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -168,21 +164,24 @@ func ReadUser(writer http.ResponseWriter, request *http.Request, params httprout
 	hmac_sha256 := hmac.New(sha256.New, []byte(os.Getenv("JWT_SECRET_KEY")))
 	hmac_sha256.Write([]byte(user_login.Password))
 
-	sql_query := "SELECT id_text, email, password, fullname, created_at FROM user WHERE email=?;"
+	sql_query := "SELECT password FROM user WHERE email=?;"
 	db := database.GetDatabaseConnection()
 	rows := db.QueryRowContext(request.Context(), sql_query, user_login.Email)
 	err = rows.Err()
 	if err != nil {
 		log.Println(err)
 
+		writer.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
-	user := &model.User{}
 	var stored_hashed_password []byte
-	err = rows.Scan(&user.Id, &user.Email, &stored_hashed_password, &user.Fullname, &user.CreatedAt)
+	err = rows.Scan(&stored_hashed_password)
 	if err != nil {
 		log.Println(err)
+
+		writer.WriteHeader(http.StatusInternalServerError)
 
 		return
 	}
@@ -191,12 +190,23 @@ func ReadUser(writer http.ResponseWriter, request *http.Request, params httprout
 	if err != nil {
 		log.Println(err)
 
+		writer.WriteHeader(http.StatusBadRequest)
+
 		return
 	}
 
-	res.Message = "berhasil mengambil data user"
-	res.Data["user"] = user
+	token, err := auth.GenerateToken(*user_login)
+	if err != nil {
+		log.Println(err)
+
+		writer.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	response.Data["token"] = token
+	response.Message = "berhasil generate token"
 
 	writer.WriteHeader(http.StatusOK)
-	writer.Write([]byte(res.ToJson()))
+	writer.Write([]byte(response.ToJson()))
 }
