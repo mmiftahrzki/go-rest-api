@@ -21,6 +21,7 @@
 go.work
 
 *_test.go
+*.http
 .env
 .vscode
 notes.md
