@@ -7,7 +7,7 @@ import (
 
 type response struct {
 	Message string                 `json:"message"`
-	Data    map[string]interface{} `json:"data"`
+	Data    map[string]interface{} `json:"data,omitempty" `
 }
 
 func New() *response {
@@ -17,12 +17,12 @@ func New() *response {
 	}
 }
 
-func (r *response) Send(w http.ResponseWriter) {
+func (response *response) Send(w http.ResponseWriter) {
 	w.Write([]byte("sukses"))
 }
 
-func (r *response) ToJson() []byte {
-	json_enc_r, _ := json.Marshal(r)
+func (response *response) ToJson() []byte {
+	json_enc_r, _ := json.Marshal(response)
 
 	return json_enc_r
 }

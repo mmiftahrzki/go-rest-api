@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/julienschmidt/httprouter"
+	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/response"
 	"github.com/mmiftahrzki/go-rest-api/router"
 )
@@ -22,13 +23,18 @@ type JwtClaims struct {
 	jwt.RegisteredClaims
 }
 
+type signinpayload struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type jwtContextKey int
 
 const key jwtContextKey = iota
 const req_header_auth_key string = "Authorization"
 
-var errEmptyAuth = errors.New("auth: authorization header not found")
-var errInvalidAuth = errors.New("auth: invalid authorization header")
+var errEmptyAuth = errors.New("authorization header not found")
+var errInvalidAuth = errors.New("invalid authorization header")
 
 func extractAuthTokenStr(auth_value string) (string, error) {
 	var token_str string
@@ -57,16 +63,21 @@ func ExtractAuthClaims(ctx context.Context) (*JwtClaims, error) {
 	return claims, nil
 }
 
-func New() router.Middleware {
+func New() middleware.Middleware {
 	return authHandler
 }
 
 func authHandler(next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+
 		auth_value := request.Header.Get(req_header_auth_key)
 		token_str, err := extractAuthTokenStr(auth_value)
 		if err != nil {
+			router.Response.Message = err.Error()
+
 			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte(router.Response.ToJson()))
 
 			return
 		}
@@ -74,22 +85,36 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 		token, err := jwt.ParseWithClaims(token_str, &JwtClaims{}, func(t *jwt.Token) (interface{}, error) {
 			method, ok := t.Method.(*jwt.SigningMethodHMAC)
 			if !ok || method != jwt.SigningMethodHS256 {
-				return nil, fmt.Errorf("auth: invalid signing method")
+				return nil, fmt.Errorf("invalid signing method")
 			}
 
 			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
 		})
 
 		if err != nil {
-			log.Println(err)
+			router.Response.Message = err.Error()
+
 			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte(router.Response.ToJson()))
+
+			return
+		}
+
+		if !token.Valid {
+			router.Response.Message = "invalid jwt"
+
+			writer.WriteHeader(http.StatusUnauthorized)
+			writer.Write([]byte(router.Response.ToJson()))
 
 			return
 		}
 
 		claims, ok := token.Claims.(*JwtClaims)
-		if !ok || !token.Valid {
+		if !ok {
+			router.Response.Message = "invalid jwt claims"
+
 			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte(router.Response.ToJson()))
 
 			return
 		}
@@ -98,11 +123,6 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 
 		next.ServeHTTP(writer, request)
 	}
-}
-
-type signinpayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 func NewSignInPayload() *signinpayload {

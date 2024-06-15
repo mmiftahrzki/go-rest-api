@@ -10,8 +10,8 @@ import (
 	"time"
 
 	pkg_validator "github.com/go-playground/validator/v10"
+	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/model"
-	"github.com/mmiftahrzki/go-rest-api/router"
 )
 
 type jwtContextKey int
@@ -37,7 +37,7 @@ func init() {
 	})
 }
 
-func New() router.Middleware {
+func New() middleware.Middleware {
 	return validationHandler
 }
 
@@ -86,4 +86,14 @@ func ExtractCustomerFromContext(ctx context.Context) (*model.Customer, error) {
 	}
 
 	return customer, nil
+}
+
+func ExtractUserFromContext(ctx context.Context) (*model.User, error) {
+	user_value := ctx.Value(key)
+	user, ok := user_value.(*model.User)
+	if !ok {
+		return nil, errors.New("validation: invalid user")
+	}
+
+	return user, nil
 }
