@@ -11,6 +11,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/mmiftahrzki/go-rest-api/controller"
 	"github.com/mmiftahrzki/go-rest-api/database"
+	"github.com/mmiftahrzki/go-rest-api/handler"
 	"github.com/mmiftahrzki/go-rest-api/middleware"
 	auth_pkg "github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/middleware/validation"
@@ -34,23 +35,28 @@ func main() {
 	customerValidation := validation.New()
 
 	helloWorld := router_pkg.Endpoint{Path: "/", Method: http.MethodGet}
-	createUser := router_pkg.Endpoint{Path: "/api/users", Method: http.MethodPost, Middlewares: []middleware.Middleware{auth}}
+
+	signUp := router_pkg.Endpoint{Path: "/api/auth/signup", Method: http.MethodPost}
 	signIn := router_pkg.Endpoint{Path: "/api/auth/signin", Method: http.MethodPost}
+
+	getToken := router_pkg.Endpoint{Path: "/api/auth/token", Method: http.MethodPost}
+
 	createCustomer := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodPost, Middlewares: []middleware.Middleware{auth, customerValidation}}
 	getAllCustomers := router_pkg.Endpoint{Path: "/api/customers", Method: http.MethodGet, Middlewares: []middleware.Middleware{auth}}
 	getCustomerById := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodGet, Middlewares: []middleware.Middleware{auth}}
 	updateCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodPut, Middlewares: []middleware.Middleware{auth}}
 	deleteCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodDelete, Middlewares: []middleware.Middleware{auth}}
-	getToken := router_pkg.Endpoint{Path: "/api/auth/token", Method: http.MethodPost}
 
 	router.AddRoute(helloWorld, func(writer http.ResponseWriter, request *http.Request, parameters httprouter.Params) {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)
 		writer.Write([]byte(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Greetings!</title></head><body><h1>Hello, Wordl!</h1></body></html>`))
 	})
-	router.AddRoute(signIn, controller.ReadUser)
+	router.AddRoute(signUp, handler.CreateUser)
+	router.AddRoute(signIn, handler.ReadUser)
+
 	router.AddRoute(getToken, auth_pkg.Token)
-	router.AddRoute(createUser, controller.CreateUser)
+
 	router.AddRoute(createCustomer, controller_customer.Create)
 	router.AddRoute(getAllCustomers, controller_customer.ReadAll)
 	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.ReadNext)

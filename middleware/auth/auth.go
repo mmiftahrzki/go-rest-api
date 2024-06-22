@@ -77,7 +77,7 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 			router.Response.Message = err.Error()
 
 			writer.WriteHeader(http.StatusBadRequest)
-			writer.Write([]byte(router.Response.ToJson()))
+			writer.Write(router.Response.ToJson())
 
 			return
 		}
