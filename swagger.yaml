@@ -7,7 +7,8 @@ info:
     name: Muhamamd Miftah Rizki
     email: muhamamdmiftahrizki@gmail.com
 servers:
-  - url: http://localhost:3000/api
+  # - url: https://1111ft4h.xyz/api
+  - url: /api
 paths:
   /auth/signin:
     post:
@@ -233,7 +234,7 @@ components:
         created_by:
           type: string
           format: email
-    ApiResponse:
+    Response:
       type: object
       properties:
         message:
