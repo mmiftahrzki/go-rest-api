@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="SwaggerUI" />
+
+    <title>Documentation</title>
+
+    <link rel="stylesheet" href="/swagger-css" />
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+
+    <script src="/swagger-js" crossorigin></script>
+
+    <script>
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          url: "/swagger",
+          dom_id: "#swagger-ui",
+        });
+      };
+    </script>
+  </body>
+</html>
