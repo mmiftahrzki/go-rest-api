@@ -20,16 +20,15 @@ type Router struct {
 	httprouter *httprouter.Router
 }
 
-var Response = response.New()
-
 func New() *Router {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		Response.Message = "sumber daya yang Anda cari tidak ditemukan"
+		response := response.New()
+		response.Message = "sumber daya yang Anda cari tidak ditemukan"
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(Response.ToJson())
+		w.Write(response.ToJson())
 	})
 	router.MethodNotAllowed = router.NotFound
 

@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,23 +21,24 @@ import (
 	"github.com/mmiftahrzki/go-rest-api/database"
 	"github.com/mmiftahrzki/go-rest-api/middleware/auth"
 	"github.com/mmiftahrzki/go-rest-api/model"
-	"github.com/mmiftahrzki/go-rest-api/router"
+	"github.com/mmiftahrzki/go-rest-api/response"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // func (c *controller) CreateUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 func CreateUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	writer.Header().Set("Content-Type", "application/json")
+	response := response.New()
 
 	// marshal http request body payload to user type struct
 	request_body, err := io.ReadAll(request.Body)
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
+		response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
 
 		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write(router.Response.ToJson())
+		writer.Write(response.ToJson())
 
 		return
 	}
@@ -48,10 +50,10 @@ func CreateUser(writer http.ResponseWriter, request *http.Request, params httpro
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "invalid payload"
+		response.Message = "invalid payload"
 
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(router.Response.ToJson())
+		writer.Write(response.ToJson())
 
 		return
 	}
@@ -62,10 +64,10 @@ func CreateUser(writer http.ResponseWriter, request *http.Request, params httpro
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "invalid payload"
+		response.Message = "invalid payload"
 
 		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(router.Response.ToJson())
+		writer.Write(response.ToJson())
 
 		return
 	}
@@ -80,10 +82,10 @@ func CreateUser(writer http.ResponseWriter, request *http.Request, params httpro
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
+		response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
 
 		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write(router.Response.ToJson())
+		writer.Write(response.ToJson())
 
 		return
 	}
@@ -124,33 +126,39 @@ func CreateUser(writer http.ResponseWriter, request *http.Request, params httpro
 			}
 		}
 
-		router.Response.Message = response_message
+		response.Message = response_message
 
 		writer.WriteHeader(response_status)
-		writer.Write(router.Response.ToJson())
+		writer.Write(response.ToJson())
 
 		return
 	}
 
-	router.Response.Message = "berhasil membuat user baru"
-	router.Response.Data["id"] = id.String()
+	response.Message = "berhasil membuat user baru"
+	response.Data["id"] = id.String()
 
 	writer.WriteHeader(http.StatusCreated)
-	writer.Write(router.Response.ToJson())
+	writer.Write(response.ToJson())
 }
 
 func ReadUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	response := response.New()
+	status_code := http.StatusInternalServerError
+	message := "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
+
 	writer.Header().Set("Content-Type", "application/json")
+
+	defer func() {
+		response.Message = message
+
+		writer.WriteHeader(status_code)
+		writer.Write(response.ToJson())
+	}()
 
 	// marshal http request body payload to user login payload type struct
 	request_body, err := io.ReadAll(request.Body)
 	if err != nil {
 		log.Println(err)
-
-		router.Response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
-
-		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write(router.Response.ToJson())
 
 		return
 	}
@@ -160,12 +168,16 @@ func ReadUser(writer http.ResponseWriter, request *http.Request, params httprout
 	json_decoder := json.NewDecoder(buffer)
 	err = json_decoder.Decode(user_login)
 	if err != nil {
+		var err_syntax *json.SyntaxError
+
+		if errors.As(err, &err_syntax) {
+			message = "invalid payload"
+			status_code = http.StatusBadRequest
+
+			return
+		}
+
 		log.Println(err)
-
-		router.Response.Message = "invalid payload"
-
-		writer.WriteHeader(http.StatusBadRequest)
-		writer.Write(router.Response.ToJson())
 
 		return
 	}
@@ -175,29 +187,39 @@ func ReadUser(writer http.ResponseWriter, request *http.Request, params httprout
 
 	sql_query := "SELECT password FROM user WHERE email=?;"
 	db := database.GetDatabaseConnection()
-	row := db.QueryRowContext(request.Context(), sql_query, user_login.Email)
+	row, err := db.QueryContext(request.Context(), sql_query, user_login.Email)
+	if err != nil {
+		log.Println(err)
+
+		return
+	}
+	defer row.Close()
+
+	if !row.Next() {
+		message = "email atau password invalid"
+		status_code = http.StatusOK
+
+		return
+	}
 
 	var stored_hashed_password []byte
 	err = row.Scan(&stored_hashed_password)
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
-
-		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write(router.Response.ToJson())
-
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword(stored_hashed_password, hmac_sha256.Sum(nil))
 	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			message = "email atau password invalid"
+			status_code = http.StatusOK
+
+			return
+		}
+
 		log.Println(err)
-
-		router.Response.Message = "email atau password invalid"
-
-		writer.WriteHeader(http.StatusUnauthorized)
-		writer.Write(router.Response.ToJson())
 
 		return
 	}
@@ -206,17 +228,10 @@ func ReadUser(writer http.ResponseWriter, request *http.Request, params httprout
 	if err != nil {
 		log.Println(err)
 
-		router.Response.Message = "terjadi kesalahan tak terduga di server. silakan coba lagi nanti."
-
-		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write(router.Response.ToJson())
-
 		return
 	}
 
-	router.Response.Data["token"] = token
-	router.Response.Message = "berhasil generate token"
-
-	writer.WriteHeader(http.StatusOK)
-	writer.Write(router.Response.ToJson())
+	status_code = http.StatusOK
+	message = "berhasil generate token"
+	response.Data["token"] = token
 }

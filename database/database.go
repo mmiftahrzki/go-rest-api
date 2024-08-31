@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"sync"
 
@@ -33,8 +32,6 @@ func new() *sql.DB {
 
 func GetDatabaseConnection() *sql.DB {
 	if database_connection != nil {
-		fmt.Println("koneksi database sudah pernah dibuat.")
-
 		return database_connection
 	}
 

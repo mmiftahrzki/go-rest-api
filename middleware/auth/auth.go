@@ -15,7 +15,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/response"
-	"github.com/mmiftahrzki/go-rest-api/router"
 )
 
 type JwtClaims struct {
@@ -70,14 +69,15 @@ func New() middleware.Middleware {
 func authHandler(next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
+		response := response.New()
 
 		auth_value := request.Header.Get(req_header_auth_key)
 		token_str, err := extractAuthTokenStr(auth_value)
 		if err != nil {
-			router.Response.Message = err.Error()
+			response.Message = err.Error()
 
 			writer.WriteHeader(http.StatusBadRequest)
-			writer.Write(router.Response.ToJson())
+			writer.Write(response.ToJson())
 
 			return
 		}
@@ -92,29 +92,29 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 		})
 
 		if err != nil {
-			router.Response.Message = err.Error()
+			response.Message = err.Error()
 
 			writer.WriteHeader(http.StatusBadRequest)
-			writer.Write([]byte(router.Response.ToJson()))
+			writer.Write([]byte(response.ToJson()))
 
 			return
 		}
 
 		if !token.Valid {
-			router.Response.Message = "invalid jwt"
+			response.Message = "invalid jwt"
 
 			writer.WriteHeader(http.StatusUnauthorized)
-			writer.Write([]byte(router.Response.ToJson()))
+			writer.Write([]byte(response.ToJson()))
 
 			return
 		}
 
 		claims, ok := token.Claims.(*JwtClaims)
 		if !ok {
-			router.Response.Message = "invalid jwt claims"
+			response.Message = "invalid jwt claims"
 
 			writer.WriteHeader(http.StatusBadRequest)
-			writer.Write([]byte(router.Response.ToJson()))
+			writer.Write([]byte(response.ToJson()))
 
 			return
 		}
