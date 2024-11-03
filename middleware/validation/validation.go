@@ -10,6 +10,7 @@ import (
 	"time"
 
 	pkg_validator "github.com/go-playground/validator/v10"
+	"github.com/julienschmidt/httprouter"
 	"github.com/mmiftahrzki/go-rest-api/middleware"
 	"github.com/mmiftahrzki/go-rest-api/model"
 )
@@ -41,8 +42,8 @@ func New() middleware.Middleware {
 	return validationHandler
 }
 
-func validationHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
+func validationHandler(next httprouter.Handle) httprouter.Handle {
+	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		r_body, err := io.ReadAll(request.Body)
 		if err != nil {
 			writer.Header().Set("Content-Type", "application/json")
@@ -74,7 +75,7 @@ func validationHandler(next http.HandlerFunc) http.HandlerFunc {
 
 		request = request.WithContext(context.WithValue(request.Context(), key, customer))
 
-		next.ServeHTTP(writer, request)
+		next(writer, request, params)
 	}
 }
 

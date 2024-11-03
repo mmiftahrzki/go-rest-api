@@ -1,5 +1,7 @@
 package middleware
 
-import "net/http"
+import (
+	"github.com/julienschmidt/httprouter"
+)
 
-type Middleware func(http.HandlerFunc) http.HandlerFunc
+type Middleware func(httprouter.Handle) httprouter.Handle

@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -39,19 +38,15 @@ func New() *Router {
 }
 
 func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	var handler_funcs http.HandlerFunc = router.httprouter.ServeHTTP
-
-	key := fmt.Sprintf("%s%s", request.URL.Path, request.Method)
-	for i := len(router.endpoints[key].Middlewares) - 1; i >= 0; i-- {
-		handler_funcs = router.endpoints[key].Middlewares[i](handler_funcs)
-	}
-
-	handler_funcs.ServeHTTP(writer, request)
+	router.httprouter.ServeHTTP(writer, request)
 }
 
-func (router *Router) AddRoute(endpoint Endpoint, handle httprouter.Handle) {
-	router.httprouter.Handle(endpoint.Method, endpoint.Path, handle)
+func (router *Router) Handle(endpoint Endpoint, handle httprouter.Handle) {
+	var handlers httprouter.Handle = handle
 
-	key := fmt.Sprintf("%s%s", endpoint.Path, endpoint.Method)
-	router.endpoints[key] = endpoint
+	for i := len(endpoint.Middlewares) - 1; i >= 0; i-- {
+		handlers = endpoint.Middlewares[i](handlers)
+	}
+
+	router.httprouter.Handle(endpoint.Method, endpoint.Path, handlers)
 }
