@@ -57,24 +57,32 @@ func main() {
 	getCustomerById := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodGet, Middlewares: []middleware.Middleware{auth}}
 	updateCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodPut, Middlewares: []middleware.Middleware{auth}}
 	deleteCustomer := router_pkg.Endpoint{Path: "/api/customers/:id", Method: http.MethodDelete, Middlewares: []middleware.Middleware{auth}}
-	documentation := router_pkg.Endpoint{Path: "/api-docs", Method: http.MethodGet}
+	documentation := router_pkg.Endpoint{Path: "/restful-api", Method: http.MethodGet}
 
-	router.AddRoute(helloWorld, func(writer http.ResponseWriter, request *http.Request, parameters httprouter.Params) {
+	router.Handle(helloWorld, func(writer http.ResponseWriter, request *http.Request, parameters httprouter.Params) {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)
-		writer.Write([]byte(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Greetings!</title></head><body><h1>Hello, Wordl!</h1></body></html>`))
+
+		const file_name = "./index.html"
+
+		file_content, err := os.ReadFile(file_name)
+		if err != nil {
+			panic(err)
+		}
+
+		writer.Write(file_content)
 	})
-	router.AddRoute(signUp, handler.CreateUser)
-	router.AddRoute(signIn, handler.ReadUser)
-	router.AddRoute(getToken, auth_pkg.Token)
-	router.AddRoute(createCustomer, controller_customer.Create)
-	router.AddRoute(getAllCustomers, controller_customer.ReadAll)
-	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet}, controller_customer.ReadNext)
-	router.AddRoute(router_pkg.Endpoint{Path: "/api/customers/:id/prev", Method: http.MethodGet}, controller_customer.ReadPrev)
-	router.AddRoute(updateCustomer, controller_customer.UpdateById)
-	router.AddRoute(deleteCustomer, controller_customer.Delete)
-	router.AddRoute(getCustomerById, controller_customer.ReadById)
-	router.AddRoute(router_pkg.Endpoint{Path: "/swagger-css", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.Handle(signUp, handler.CreateUser)
+	router.Handle(signIn, handler.ReadUser)
+	router.Handle(getToken, auth_pkg.Token)
+	router.Handle(createCustomer, controller_customer.Create)
+	router.Handle(getAllCustomers, controller_customer.ReadAll)
+	router.Handle(router_pkg.Endpoint{Path: "/api/customers/:id/next", Method: http.MethodGet, Middlewares: []middleware.Middleware{auth}}, controller_customer.ReadNext)
+	router.Handle(router_pkg.Endpoint{Path: "/api/customers/:id/prev", Method: http.MethodGet, Middlewares: []middleware.Middleware{auth}}, controller_customer.ReadPrev)
+	router.Handle(updateCustomer, controller_customer.UpdateById)
+	router.Handle(deleteCustomer, controller_customer.Delete)
+	router.Handle(getCustomerById, controller_customer.ReadById)
+	router.Handle(router_pkg.Endpoint{Path: "/swagger-css", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Set("Content-Type", "text/css")
 		w.WriteHeader(http.StatusOK)
 
@@ -87,7 +95,7 @@ func main() {
 
 		w.Write([]byte(file_content))
 	})
-	router.AddRoute(router_pkg.Endpoint{Path: "/swagger-js", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.Handle(router_pkg.Endpoint{Path: "/swagger-js", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Set("Content-Type", "text/javascript")
 		w.WriteHeader(http.StatusOK)
 
@@ -100,12 +108,12 @@ func main() {
 
 		w.Write([]byte(file_content))
 	})
-	router.AddRoute(documentation, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.Handle(documentation, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		w.Write(swagger_ui_html)
 	})
-	router.AddRoute(router_pkg.Endpoint{Path: "/swagger", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	router.Handle(router_pkg.Endpoint{Path: "/swagger", Method: http.MethodGet}, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Set("Content-Type", "text/yaml")
 		w.WriteHeader(http.StatusOK)
 		w.Write(swagger_yaml)
