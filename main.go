@@ -26,6 +26,9 @@ var swagger_ui_html []byte
 //go:embed swagger.yaml
 var swagger_yaml []byte
 
+//go:embed index.html
+var index_html []byte
+
 //go:embed static/*
 var static_fs embed.FS
 
@@ -62,15 +65,7 @@ func main() {
 	router.Handle(helloWorld, func(writer http.ResponseWriter, request *http.Request, parameters httprouter.Params) {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)
-
-		const file_name = "./index.html"
-
-		file_content, err := os.ReadFile(file_name)
-		if err != nil {
-			panic(err)
-		}
-
-		writer.Write(file_content)
+		writer.Write(index_html)
 	})
 	router.Handle(signUp, handler.CreateUser)
 	router.Handle(signIn, handler.ReadUser)
