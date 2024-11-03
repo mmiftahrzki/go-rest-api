@@ -66,8 +66,8 @@ func New() middleware.Middleware {
 	return authHandler
 }
 
-func authHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
+func authHandler(next httprouter.Handle) httprouter.Handle {
+	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		writer.Header().Set("Content-Type", "application/json")
 		response := response.New()
 
@@ -121,7 +121,7 @@ func authHandler(next http.HandlerFunc) http.HandlerFunc {
 
 		request = request.WithContext(context.WithValue(request.Context(), key, claims))
 
-		next.ServeHTTP(writer, request)
+		next(writer, request, params)
 	}
 }
 
