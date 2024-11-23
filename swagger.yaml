@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: RESTful API for 1111ft4h.xyz
+  title: RESTful API
   version: 1.0.0
-  description: This is the minimum API for 1111ft4h.xyz
+  description: This is the minimum RESTful API
   contact:
     name: Muhamamd Miftah Rizki
     email: muhamamdmiftahrizki@gmail.com
